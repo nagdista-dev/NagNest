@@ -1,0 +1,24 @@
+{
+  "name": "NagNest",
+  "short_name": "NagNest",
+  "description": "A clean personal news dashboard for saved sites and X sources.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#f8f6f0",
+  "theme_color": "#0f172a",
+  "categories": ["news", "productivity", "utilities"],
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

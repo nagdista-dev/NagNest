@@ -57,7 +57,7 @@ export function Ticker() {
   const hasItems = group.length > 0
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 shadow-[0_-4px_16px_rgba(15,23,42,0.08)] backdrop-blur">
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(15,23,42,0.08)] backdrop-blur">
       <div className="flex h-10 items-stretch">
         <div className="flex shrink-0 items-center gap-1.5 bg-slate-900 px-3.5 text-[11px] font-extrabold tracking-widest text-teal-400 uppercase border-r border-slate-800">
           <Radio size={13} className={loading ? 'animate-pulse text-amber-400' : 'text-teal-400'} />

@@ -49,6 +49,14 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+* {
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}
+
 ::selection {
   background-color: var(--color-teal-brand);
   color: #ffffff;

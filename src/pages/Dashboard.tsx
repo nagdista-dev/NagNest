@@ -7,7 +7,6 @@ import {
   FolderKanban,
   Pin,
   Eye,
-  Sparkles,
 } from 'lucide-react'
 import { useSites } from '../context/useSites'
 import { SiteCard } from '../components/SiteCard'
@@ -118,43 +117,25 @@ export function Dashboard() {
   }
 
   return (
-    <div className="flex flex-col gap-6 sm:gap-8">
-      {/* ── Nagdista FAJR Hero Banner ─────────────────────────── */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-fajr p-5 sm:p-8 md:p-10 shadow-xl ring-1 ring-white/10 text-white">
-        {/* Ambient background glows */}
-        <div className="pointer-events-none absolute -top-20 -right-20 h-64 sm:h-72 w-64 sm:w-72 rounded-full bg-teal-400/20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 -left-12 h-56 sm:h-64 w-56 sm:w-64 rounded-full bg-amber-400/15 blur-3xl" />
-        
-        {/* Subtle Watermark Logo */}
-        <div className="pointer-events-none absolute right-8 bottom-4 opacity-5 font-mono text-8xl md:text-9xl font-black select-none hidden sm:block">
-          {'{N}'}
-        </div>
-
-        <div className="relative z-10 flex flex-col gap-5 sm:gap-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/15 px-2.5 py-0.5 sm:px-3 sm:py-1 text-[11px] sm:text-xs font-extrabold text-amber-300 ring-1 ring-amber-400/30">
-                  <Sparkles size={12} />
-                  NAGDISTA ECOSYSTEM
-                </span>
-              </div>
-              <h2 className="font-heading text-xl sm:text-3xl font-extrabold text-white tracking-tight">
-                Welcome back to your nest
-              </h2>
-              <p className="mt-1 text-xs sm:text-sm md:text-base text-slate-300 font-medium">
-                Keep Learning, Keep Building · <span className="text-teal-300 font-bold">{sites.length} sources</span>
-              </p>
-            </div>
-
-            <div className="hidden md:flex items-center gap-2 self-start sm:self-center">
-              <span className="inline-flex items-center gap-1.5 text-xs text-slate-300 bg-white/10 px-3 py-1.5 rounded-full ring-1 ring-white/10">
-                Press <kbd className="rounded bg-white/20 px-1.5 py-0.5 font-mono text-xs font-bold text-amber-300">N</kbd> to add
-              </span>
-            </div>
+    <div className="flex flex-col gap-4 overflow-x-hidden px-3.5 pt-0 sm:gap-8 sm:px-0">
+      <section className="rounded-2xl bg-white p-3.5 shadow-sm ring-1 ring-slate-200/80 sm:p-5">
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="font-heading text-lg font-extrabold text-slate-950 sm:text-2xl">
+              Home
+            </h2>
+            <p className="mt-0.5 text-xs font-medium text-slate-500 sm:text-sm">
+              {sites.length} saved source{sites.length === 1 ? '' : 's'}
+            </p>
           </div>
-
-          {/* Quick Add Bar */}
+          <button
+            onClick={openAdd}
+            className="hidden items-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-teal-600 sm:inline-flex"
+          >
+            <Plus size={14} />
+            New Source
+          </button>
+        </div>
           <form
             className="flex flex-col gap-2 sm:flex-row"
             onSubmit={(e) => {
@@ -172,42 +153,41 @@ export function Dashboard() {
                 dir="ltr"
                 value={quickUrl}
                 onChange={(e) => setQuickUrl(e.target.value)}
-                placeholder="Paste any link — https://openai.com/blog or @twitter"
-                className="w-full rounded-2xl border border-white/15 bg-white/10 px-3.5 py-3 pl-10 text-xs sm:text-sm text-white placeholder:text-slate-400 shadow-inner backdrop-blur-md outline-none transition focus:border-teal-400 focus:bg-white/15 focus:ring-2 focus:ring-teal-400/30"
+                placeholder="Paste a site or @handle"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 pl-10 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-100 sm:rounded-2xl"
               />
             </div>
             <button
               type="submit"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-teal-500 px-5 py-3 text-xs sm:text-sm font-bold text-slate-950 shadow-lg shadow-teal-500/25 transition hover:bg-teal-400 hover:scale-[1.01] active:scale-[0.98]"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-slate-950 shadow-lg shadow-teal-500/25 transition hover:bg-teal-400 active:scale-[0.98] sm:rounded-2xl"
             >
               <Plus size={16} className="stroke-[3]" />
               Add Source
             </button>
           </form>
-        </div>
       </section>
 
       {/* ── Stats Metric Cards ─────────────────────────────────── */}
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-3.5">
+      <section className="grid grid-cols-4 gap-2 rounded-2xl bg-white p-2 shadow-sm ring-1 ring-slate-200/80 sm:gap-3 sm:p-3">
         {stats.map((s) => (
           <div
             key={s.label}
-            className="flex items-center gap-3 sm:gap-3.5 rounded-2xl bg-white p-3.5 sm:p-4 shadow-sm ring-1 ring-slate-200/80 transition hover:shadow-md hover:ring-teal-200"
+            className="flex min-w-0 flex-col gap-1 rounded-xl px-2.5 py-2 sm:flex-row sm:items-center sm:gap-3 sm:p-3"
           >
-            <div className={`flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl ring-1 ${s.bg} ${s.color}`}>
-              <s.icon size={18} />
+            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1 sm:h-10 sm:w-10 ${s.bg} ${s.color}`}>
+              <s.icon size={16} />
             </div>
             <div className="min-w-0">
-              <p className="text-lg sm:text-xl leading-tight font-extrabold text-slate-900">{s.value}</p>
-              <p className="truncate text-[11px] sm:text-xs font-semibold text-slate-500">{s.label}</p>
+              <p className="text-base leading-tight font-extrabold text-slate-900 sm:text-xl">{s.value}</p>
+              <p className="truncate text-[10px] font-semibold text-slate-500 sm:text-xs">{s.label}</p>
             </div>
           </div>
         ))}
       </section>
 
       {/* ── Filter & Search Toolbar ────────────────────────────── */}
-      <section className="flex flex-col gap-3.5">
-        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2.5 rounded-2xl bg-white p-2.5 shadow-sm ring-1 ring-slate-200/80 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search
               size={16}
@@ -217,17 +197,17 @@ export function Dashboard() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search your saved sites, domains, notes…"
-              className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pr-4 pl-10 text-xs sm:text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+              placeholder="Search sources"
+              className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pr-4 pl-10 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 sm:shadow-sm"
             />
           </div>
 
           {/* Quick Kind Switcher & Sort */}
-          <div className="flex items-center justify-between sm:justify-start gap-2 flex-wrap sm:flex-nowrap">
-            <div className="flex items-center rounded-xl bg-slate-100 p-1 ring-1 ring-slate-200">
+          <div className="grid grid-cols-[1fr_auto] items-center gap-2 sm:flex sm:flex-nowrap sm:justify-start">
+            <div className="flex min-w-0 items-center rounded-xl bg-slate-100 p-1 ring-1 ring-slate-200">
               <button
                 onClick={() => setTypeFilter('all')}
-                className={`rounded-lg px-2.5 py-1 text-xs font-bold transition ${
+                className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-bold transition sm:flex-none sm:px-2.5 sm:py-1 ${
                   typeFilter === 'all'
                     ? 'bg-white text-slate-900 shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
@@ -237,7 +217,7 @@ export function Dashboard() {
               </button>
               <button
                 onClick={() => setTypeFilter('website')}
-                className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold transition ${
+                className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs font-bold transition sm:flex-none sm:px-2.5 sm:py-1 ${
                   typeFilter === 'website'
                     ? 'bg-white text-teal-700 shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
@@ -248,22 +228,22 @@ export function Dashboard() {
               </button>
               <button
                 onClick={() => setTypeFilter('twitter')}
-                className={`flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold transition ${
+                className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs font-bold transition sm:flex-none sm:py-1 ${
                   typeFilter === 'twitter'
                     ? 'bg-white text-sky-600 shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <span className="font-bold text-[10px]">𝕏</span>
+                <span className="font-bold text-[10px]">X</span>
                 ({twitterCount})
               </button>
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex shrink-0 items-center gap-1.5">
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value as SortKey)}
-                className="rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-xs font-bold text-slate-700 shadow-xs outline-none focus:border-teal-500"
+                className="max-w-24 rounded-xl border border-slate-200 bg-white px-2 py-2 text-xs font-bold text-slate-700 shadow-xs outline-none focus:border-teal-500 sm:max-w-none sm:px-2.5"
               >
                 <option value="recent">Newest</option>
                 <option value="visits">Most Visited</option>
@@ -272,7 +252,7 @@ export function Dashboard() {
 
               <button
                 onClick={openAdd}
-                className="inline-flex items-center gap-1 rounded-xl bg-slate-900 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-teal-600"
+                className="inline-flex items-center gap-1 rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-teal-600 sm:hidden"
               >
                 <Plus size={14} className="stroke-[3]" />
                 New
@@ -282,7 +262,7 @@ export function Dashboard() {
         </div>
 
         {/* Category Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-3.5 px-3.5 sm:mx-0 sm:px-0 sm:flex-wrap">
+        <div className="-mx-3.5 flex items-center gap-1.5 overflow-x-auto px-3.5 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
           <button
             onClick={() => setCategoryFilter('all')}
             className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold transition ${
@@ -320,7 +300,7 @@ export function Dashboard() {
 
       {/* ── Sites Grid ─────────────────────────────────────────── */}
       {filtered.length > 0 ? (
-        <section className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3.5 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((site) => (
             <SiteCard
               key={site.id}
@@ -333,7 +313,7 @@ export function Dashboard() {
           ))}
         </section>
       ) : (
-        <section className="flex flex-col items-center gap-3 rounded-3xl border-2 border-dashed border-slate-300 bg-white/60 px-5 py-14 text-center shadow-inner">
+        <section className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-slate-300 bg-white/60 px-5 py-12 text-center shadow-inner sm:rounded-3xl sm:py-14">
           {sites.length === 0 ? (
             <>
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-600 ring-1 ring-teal-500/20">

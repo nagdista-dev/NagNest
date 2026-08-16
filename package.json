@@ -13,9 +13,11 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "fast-xml-parser": "^5.11.0",
     "lucide-react": "^1.31.0",
+    "mongodb": "^7.5.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.2",
