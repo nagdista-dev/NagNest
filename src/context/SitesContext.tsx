@@ -1,5 +1,4 @@
 import {
-  createContext,
   useCallback,
   useEffect,
   useMemo,
@@ -8,24 +7,16 @@ import {
   type ReactNode,
 } from 'react'
 import type { AppData, Category, Site } from '../types'
-import { loadData, saveData, uid, UNCATEGORIZED_ID } from '../lib/storage'
-
-export interface ToastAction {
-  label: string
-  onClick: () => void
-}
-
-export interface Toast {
-  id: string
-  message: string
-  type: 'success' | 'error'
-  action?: ToastAction
-}
-
-export interface MergeResult {
-  added: number
-  skipped: number
-}
+import { defaultData, loadData, uid, UNCATEGORIZED_ID } from '../lib/storage'
+import { getAccountData, saveAccountData } from '../lib/api'
+import { useAuth } from './useAuth'
+import {
+  SitesContext,
+  type MergeResult,
+  type SitesContextValue,
+  type Toast,
+  type ToastAction,
+} from './sitesContextValue'
 
 interface DeletedEntry {
   kind: 'site'
@@ -38,37 +29,15 @@ interface DeletedCategoryEntry {
   movedSites: Site[]
 }
 
-export interface SitesContextValue {
-  sites: Site[]
-  categories: Category[]
-  addSite: (input: Omit<Site, 'id' | 'createdAt' | 'visits' | 'lastVisited'>) => void
-  updateSite: (id: string, patch: Partial<Omit<Site, 'id'>>) => void
-  deleteSite: (id: string) => void
-  togglePin: (id: string) => void
-  registerVisit: (id: string) => void
-  addCategory: (name: string, color: string) => Category
-  renameCategory: (id: string, name: string) => void
-  recolorCategory: (id: string, color: string) => void
-  deleteCategory: (id: string) => void
-  importData: (data: AppData) => boolean
-  mergeData: (data: AppData) => MergeResult
-  undoLast: () => boolean
-  resetAll: () => void
-  toasts: Toast[]
-  notify: (message: string, type?: Toast['type'], action?: ToastAction) => void
-}
-
-export const SitesContext = createContext<SitesContextValue | null>(null)
-
 export function SitesProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<AppData>(() => loadData())
+  const { token, logout } = useAuth()
+  const [data, setData] = useState<AppData>(() => defaultData())
+  const [dataLoading, setDataLoading] = useState(true)
   const [toasts, setToasts] = useState<Toast[]>([])
   const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
   const lastDeleted = useRef<DeletedEntry | DeletedCategoryEntry | null>(null)
-
-  useEffect(() => {
-    saveData(data)
-  }, [data])
+  const loaded = useRef(false)
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const notify = useCallback(
     (message: string, type: Toast['type'] = 'success', action?: ToastAction) => {
@@ -82,6 +51,55 @@ export function SitesProvider({ children }: { children: ReactNode }) {
     },
     [],
   )
+
+  useEffect(() => {
+    loaded.current = false
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    if (!token) {
+      setData(defaultData())
+      setDataLoading(false)
+      return
+    }
+    let alive = true
+    setDataLoading(true)
+    getAccountData(token)
+      .then(({ data: remote }) => {
+        if (!alive) return
+        const local = loadData()
+        const shouldMigrate = remote.sites.length === 0 && local.sites.length > 0
+        const next = shouldMigrate ? local : remote
+        setData(next)
+        loaded.current = true
+        if (shouldMigrate) {
+          void saveAccountData(token, next).catch(() => undefined)
+        }
+      })
+      .catch((err) => {
+        if (!alive) return
+        if (err?.status === 401) logout()
+        else notify('Could not load your account data', 'error')
+      })
+      .finally(() => {
+        if (alive) setDataLoading(false)
+      })
+    return () => {
+      alive = false
+    }
+  }, [token, logout, notify])
+
+  useEffect(() => {
+    if (!token || !loaded.current) return
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => {
+      void saveAccountData(token, data).catch((err) => {
+        if (err?.status === 401) logout()
+        else notify('Could not save changes', 'error')
+      })
+    }, 250)
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current)
+    }
+  }, [data, token, logout, notify])
 
   useEffect(() => {
     const map = timers.current
@@ -262,6 +280,7 @@ export function SitesProvider({ children }: { children: ReactNode }) {
     () => ({
       sites: data.sites,
       categories: data.categories,
+      dataLoading,
       addSite,
       updateSite,
       deleteSite,
@@ -280,6 +299,7 @@ export function SitesProvider({ children }: { children: ReactNode }) {
     }),
     [
       data,
+      dataLoading,
       addSite,
       updateSite,
       deleteSite,

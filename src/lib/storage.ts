@@ -35,7 +35,7 @@ export function defaultCategories(): Category[] {
   ]
 }
 
-function defaultData(): AppData {
+export function defaultData(): AppData {
   return { version: 1, sites: [], categories: defaultCategories() }
 }
 

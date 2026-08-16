@@ -19,6 +19,14 @@ body {
   @apply bg-ivory text-slate-800 antialiased;
 }
 
+* {
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}
+
 ::selection {
   @apply bg-teal-600 text-white;
 }

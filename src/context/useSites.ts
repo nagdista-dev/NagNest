@@ -1,5 +1,5 @@
 import { useContext } from 'react'
-import { SitesContext, type SitesContextValue } from './SitesContext'
+import { SitesContext, type SitesContextValue } from './sitesContextValue'
 
 export function useSites(): SitesContextValue {
   const ctx = useContext(SitesContext)

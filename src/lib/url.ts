@@ -70,11 +70,20 @@ export function extractTwitterUsername(url: string): string | null {
 }
 
 export function twitterAvatarUrl(username: string): string {
-  return `https://unavatar.io/x/${username}`
+  return `https://unavatar.io/twitter/${username.replace(/^@/, '')}`
 }
 
 export function twitterAvatarFallbackUrl(username: string): string {
-  return `https://unavatar.io/twitter/${username}`
+  return `https://unavatar.io/x/${username.replace(/^@/, '')}`
+}
+
+export function twitterAvatarSources(username: string): string[] {
+  const clean = username.replace(/^@/, '')
+  return [
+    `https://unavatar.io/twitter/${clean}`,
+    `https://unavatar.io/x/${clean}`,
+    `https://api.dicebear.com/7.x/identicon/svg?seed=${clean}`,
+  ]
 }
 
 export function toTwitterUrl(raw: string): string {
