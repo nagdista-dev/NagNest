@@ -6,8 +6,8 @@ import {
   type TickerItem,
 } from './ticker'
 
-const CACHE_KEY = 'nagnest:feed:v5'
-const TTL = 10 * 60 * 1000
+const CACHE_KEY = 'nagnest:feed:v7'
+const TTL = 20 * 60 * 1000
 
 export type FeedItem = TickerItem
 
