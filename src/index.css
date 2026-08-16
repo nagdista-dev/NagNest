@@ -3,39 +3,12 @@
 @theme {
   --font-sans: "Inter", "Tajawal", ui-sans-serif, system-ui, sans-serif;
   --font-heading: "Poppins", "Tajawal", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  /* Nagdista Brand Identity Palette */
   --color-navy: #0f172a;
   --color-navy-deep: #0b1120;
-  --color-navy-light: #1e293b;
-  --color-teal-brand: #0d9488;
-  --color-teal-glow: #14b8a6;
-  --color-teal-dark: #0f766e;
+  --color-ivory: #f5ece4;
   --color-gold: #f59e0b;
-  --color-gold-light: #fbbf24;
-  --color-gold-dark: #d97706;
-  --color-ivory: #f8f6f0;
-  --color-ivory-sand: #f5ece4;
-  --color-slate-muted: #64748b;
-  --color-slate-light: #94a3b8;
-}
-
-/* Gradients */
-.bg-gradient-fajr {
-  background: linear-gradient(135deg, #0f172a 0%, #134e4a 50%, #0d9488 100%);
-}
-
-.bg-gradient-dusk {
-  background: linear-gradient(135deg, #0b1120 0%, #0f172a 60%, #0d9488 100%);
-}
-
-.bg-gradient-sunset {
-  background: linear-gradient(135deg, #0f172a 0%, #78350f 60%, #f59e0b 100%);
-}
-
-.bg-gradient-fajr-card {
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(13, 148, 136, 0.2) 100%);
 }
 
 html {
@@ -43,15 +16,11 @@ html {
 }
 
 body {
-  background-color: var(--color-ivory);
-  color: #1e293b;
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
+  @apply bg-ivory text-slate-800 antialiased;
 }
 
 ::selection {
-  background-color: var(--color-teal-brand);
-  color: #ffffff;
+  @apply bg-teal-600 text-white;
 }
 
 *:focus:not(:focus-visible) {
@@ -59,7 +28,7 @@ body {
 }
 
 *:focus-visible {
-  outline: 2px solid var(--color-gold);
+  outline: 2px solid #d97706;
   outline-offset: 2px;
 }
 
@@ -73,25 +42,10 @@ body {
 }
 
 .ticker-track {
-  animation: ticker-scroll 28s linear infinite;
+  animation: ticker-scroll 25s linear infinite;
   will-change: transform;
 }
 
 .ticker-track:hover {
   animation-play-state: paused;
-}
-
-/* Glassmorphism utilities */
-.glass-card {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(226, 232, 240, 0.8);
-}
-
-.glass-dark {
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
 }

@@ -49,7 +49,7 @@ export function Ticker() {
     }
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') void refresh()
-    }, 30 * 60 * 1000)
+    }, 20 * 60 * 1000)
     return () => clearInterval(interval)
   }, [sites, refresh])
 
@@ -57,16 +57,16 @@ export function Ticker() {
   const hasItems = group.length > 0
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 shadow-[0_-4px_16px_rgba(15,23,42,0.08)] backdrop-blur">
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-800 bg-slate-900/95 backdrop-blur">
       <div className="flex h-10 items-stretch">
-        <div className="flex shrink-0 items-center gap-1.5 bg-slate-900 px-3.5 text-[11px] font-extrabold tracking-widest text-teal-400 uppercase border-r border-slate-800">
-          <Radio size={13} className={loading ? 'animate-pulse text-amber-400' : 'text-teal-400'} />
-          Live Ticker
+        <div className="flex shrink-0 items-center gap-1.5 bg-rose-600 px-3 text-[11px] font-bold tracking-widest text-white uppercase">
+          <Radio size={13} className={loading ? 'animate-pulse' : ''} />
+          Latest
         </div>
 
         <div className="relative min-w-0 flex-1 overflow-hidden">
           {loading && !hasItems ? (
-            <div className="flex h-full items-center px-4 text-xs text-slate-500">
+            <div className="flex h-full items-center px-4 text-xs text-slate-400">
               Loading headlines from your sites…
             </div>
           ) : hasItems ? (
@@ -79,20 +79,20 @@ export function Ticker() {
                       href={item.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="group/tick flex shrink-0 items-center gap-2 px-4 text-xs text-slate-600 transition hover:text-slate-900"
+                      className="group/tick flex shrink-0 items-center gap-2 px-4 text-xs text-slate-300 transition hover:text-white"
                     >
-                      <span className="font-semibold text-teal-600 group-hover/tick:text-teal-700">
+                      <span className="font-semibold text-teal-400 group-hover/tick:text-teal-300">
                         {item.source}
                       </span>
-                      <span className="max-w-72 truncate sm:max-w-md">{item.title}</span>
-                      <span className="text-slate-300">•</span>
+                      <span className="truncate max-w-72 sm:max-w-md">{item.title}</span>
+                      <span className="text-slate-600">•</span>
                     </a>
                   ))}
                 </div>
               ))}
             </div>
           ) : (
-            <div className="flex h-full items-center px-4 text-xs text-slate-500">
+            <div className="flex h-full items-center px-4 text-xs text-slate-400">
               No headlines available — add more news sites to fill the ticker
             </div>
           )}
@@ -102,7 +102,7 @@ export function Ticker() {
           onClick={() => void refresh()}
           disabled={refreshing || loading}
           title="Refresh headlines"
-          className="flex shrink-0 items-center gap-1.5 border-l border-slate-200 px-3 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50"
+          className="flex shrink-0 items-center gap-1.5 border-l border-slate-800 px-3 text-slate-400 transition hover:bg-slate-800 hover:text-white disabled:opacity-50"
         >
           <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
           <span className="hidden text-[11px] font-medium sm:inline">

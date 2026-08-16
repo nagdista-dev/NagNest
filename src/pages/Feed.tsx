@@ -6,10 +6,9 @@ import {
   Home,
   Languages,
   Link2,
-  ExternalLink,
   MessageCircle,
-  MessageSquare,
   Newspaper,
+  Plus,
   RefreshCw,
   Repeat2,
   Search,
@@ -19,8 +18,6 @@ import {
   DatabaseBackup,
   UserPlus,
   Check,
-  Globe,
-  Radio,
 } from 'lucide-react'
 import { useSites } from '../context/useSites'
 import {
@@ -35,8 +32,10 @@ import {
   faviconFallbackUrl,
   domainInitial,
   timeAgo,
-  twitterAvatarSources,
+  twitterAvatarUrl,
+  twitterAvatarFallbackUrl,
 } from '../lib/url'
+import { SiteModal } from '../components/SiteModal'
 
 function hashNum(s: string): number {
   let h = 0
@@ -65,7 +64,7 @@ function CircleAvatar({
   if (failed >= sources.length) {
     return (
       <div
-        className={`flex shrink-0 items-center justify-center bg-slate-900 font-extrabold text-teal-400 ${rounded}`}
+        className={`flex shrink-0 items-center justify-center bg-slate-200 font-bold text-slate-600 ${rounded}`}
         style={{ width: size, height: size, fontSize: size * 0.45 }}
       >
         {letter}
@@ -79,7 +78,7 @@ function CircleAvatar({
       loading="lazy"
       referrerPolicy="no-referrer"
       onError={() => setFailed((f) => f + 1)}
-      className={`shrink-0 bg-white object-cover ring-1 ring-slate-200 shadow-sm ${rounded}`}
+      className={`shrink-0 bg-white object-cover ring-1 ring-slate-200 ${rounded}`}
       style={{ width: size, height: size }}
     />
   )
@@ -88,7 +87,7 @@ function CircleAvatar({
 function FeedAvatar({ item, size = 40 }: { item: FeedItem; size?: number }) {
   const user = item.repost ? item.originalAuthor : item.username
   const sources = user
-    ? twitterAvatarSources(user)
+    ? [twitterAvatarUrl(user), twitterAvatarFallbackUrl(user)]
     : [faviconUrl(item.domain), faviconFallbackUrl(item.domain)]
   return (
     <CircleAvatar
@@ -101,16 +100,17 @@ function FeedAvatar({ item, size = 40 }: { item: FeedItem; size?: number }) {
 
 function TweetSkeleton() {
   return (
-    <div className="flex animate-pulse gap-3.5 px-5 py-4 border-b border-slate-100">
+    <div className="flex animate-pulse gap-3 px-4 py-3">
       <div className="h-10 w-10 shrink-0 rounded-full bg-slate-200" />
-      <div className="flex-1 space-y-2.5 pt-1">
+      <div className="flex-1 space-y-2 pt-1">
         <div className="flex gap-2">
-          <div className="h-3.5 w-28 rounded bg-slate-200" />
-          <div className="h-3.5 w-16 rounded bg-slate-100" />
+          <div className="h-3 w-24 rounded bg-slate-200" />
+          <div className="h-3 w-16 rounded bg-slate-100" />
         </div>
-        <div className="h-3.5 w-full rounded bg-slate-100" />
-        <div className="h-3.5 w-4/5 rounded bg-slate-100" />
-        <div className="flex gap-8 pt-2">
+        <div className="h-3 w-full rounded bg-slate-100" />
+        <div className="h-3 w-5/6 rounded bg-slate-100" />
+        <div className="mt-2 h-20 w-full rounded-xl bg-slate-100" />
+        <div className="flex gap-10 pt-1">
           <div className="h-3 w-10 rounded bg-slate-100" />
           <div className="h-3 w-10 rounded bg-slate-100" />
           <div className="h-3 w-10 rounded bg-slate-100" />
@@ -120,131 +120,19 @@ function TweetSkeleton() {
   )
 }
 
-/** Rich formatting for tweet text: highlights links, mentions, hashtags */
-function FormattedPostContent({ text }: { text: string }) {
-  const parts = useMemo(() => {
-    const regex = /(https?:\/\/[^\s]+|@[A-Za-z0-9_]+|#[A-Za-z0-9_\u0600-\u06FF]+)/g
-    const tokens = text.split(regex)
-    return tokens.map((token, idx) => {
-      if (/^https?:\/\//i.test(token)) {
-        let clean = token
-        try {
-          const u = new URL(token)
-          clean = u.hostname.replace(/^www\./, '') + (u.pathname !== '/' ? u.pathname.slice(0, 15) + '…' : '')
-        } catch {
-          clean = token.slice(0, 24) + '…'
-        }
-        return (
-          <a
-            key={idx}
-            href={token}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-1 rounded-md bg-teal-50 px-1.5 py-0.5 text-xs font-semibold text-teal-700 hover:bg-teal-100 hover:text-teal-900 transition mx-0.5"
-            dir="ltr"
-          >
-            <Link2 size={11} className="shrink-0 text-teal-600" />
-            <span className="truncate max-w-[220px]">{clean}</span>
-          </a>
-        )
-      }
-      if (/^@[A-Za-z0-9_]+$/i.test(token)) {
-        const handle = token.replace(/^@/, '')
-        return (
-          <a
-            key={idx}
-            href={`https://x.com/${handle}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="font-semibold text-sky-600 hover:underline hover:text-sky-700"
-            dir="ltr"
-          >
-            {token}
-          </a>
-        )
-      }
-      if (/^#[A-Za-z0-9_\u0600-\u06FF]+$/i.test(token)) {
-        return (
-          <span key={idx} className="font-semibold text-teal-600 hover:underline">
-            {token}
-          </span>
-        )
-      }
-      return token
-    })
-  }, [text])
-
-  return <p className="mt-1 text-[15px] leading-relaxed whitespace-pre-wrap text-slate-900 font-normal">{parts}</p>
-}
-
-/** Parses raw tweet title to extract clean text, image URLs, and reply/repost metadata */
-function parseTweetDisplay(item: FeedItem): {
-  cleanTitle: string
-  replyTo?: string
-  isRepost: boolean
-  repostedBy?: string
-  originalAuthor?: string
-  displayImage?: string
-} {
-  let title = item.title
-  let replyTo = item.replyTo
-  let isRepost = !!item.repost
-  let repostedBy = item.repostedBy
-  let originalAuthor = item.originalAuthor
-  let displayImage = item.image
-
-  // Check for RT
-  const rtMatch = title.match(/^\s*RT\s+by\s+@([A-Za-z0-9_]+):\s*(.*)$/s) || title.match(/^\s*RT\s+@([A-Za-z0-9_]+):\s*(.*)$/s)
-  if (rtMatch) {
-    isRepost = true
-    repostedBy = item.username || repostedBy
-    originalAuthor = rtMatch[1]
-    title = rtMatch[2]?.trim() || title
-  }
-
-  // Check for Reply
-  const replyMatch = title.match(/^\s*(?:R\s+to|Replying\s+to|In\s+reply\s+to)\s+@([A-Za-z0-9_]+):\s*(.*)$/si)
-  if (replyMatch) {
-    replyTo = replyMatch[1]
-    title = replyMatch[2]?.trim() || title
-  }
-
-  // Extract inline image if found in text and not in item.image
-  const imgUrlMatch = title.match(/(https?:\/\/[^\s]+?\.(?:png|jpe?g|webp|gif))/i)
-  if (imgUrlMatch && !displayImage) {
-    displayImage = imgUrlMatch[1]
-    title = title.replace(imgUrlMatch[0], '').trim()
-  }
-
-  // Clean raw [image] tags or pic.twitter.com from text
-  title = title
-    .replace(/\[\s*image\s*\]/gi, '')
-    .replace(/(?:https?:\/\/)?pic\.twitter\.com\/\S+/gi, '')
-    .trim()
-
-  return {
-    cleanTitle: title,
-    replyTo,
-    isRepost,
-    repostedBy,
-    originalAuthor,
-    displayImage,
-  }
-}
-
 export function Feed() {
   const { sites } = useSites()
   const [items, setItems] = useState<FeedItem[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [filterType, setFilterType] = useState<'all' | 'twitter' | 'web'>('all')
   const [liked, setLiked] = useState<Set<string>>(new Set())
   const [following, setFollowing] = useState<Set<string>>(new Set())
   const [query, setQuery] = useState('')
   const [translations, setTranslations] = useState<Map<string, string>>(new Map())
   const [translatingId, setTranslatingId] = useState<string | null>(null)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [quickUrl, setQuickUrl] = useState('')
+  const [composer, setComposer] = useState('')
   const mounted = useRef(true)
 
   useEffect(() => {
@@ -296,24 +184,16 @@ export function Feed() {
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase()
-    let list = items
-
-    if (filterType === 'twitter') {
-      list = list.filter((it) => !!it.username)
-    } else if (filterType === 'web') {
-      list = list.filter((it) => !it.username)
-    }
-
-    if (q) {
-      list = list.filter(
-        (it) =>
-          it.title.toLowerCase().includes(q) ||
-          it.source.toLowerCase().includes(q) ||
-          (it.username ?? it.domain).toLowerCase().includes(q),
-      )
-    }
+    const list = q
+      ? items.filter(
+          (it) =>
+            it.title.toLowerCase().includes(q) ||
+            it.source.toLowerCase().includes(q) ||
+            (it.username ?? it.domain).toLowerCase().includes(q),
+        )
+      : items
     return list.slice(0, 40)
-  }, [items, query, filterType])
+  }, [items, query])
 
   const toggleLike = (id: string) => {
     setLiked((prev) => {
@@ -347,117 +227,121 @@ export function Feed() {
       const translated = await translateToArabic(text)
       setTranslations((prev) => new Map(prev).set(itemId, translated))
     } catch {
-      // ignore
+      // translation service unavailable — keep original
     }
     setTranslatingId(null)
   }
 
-  const twitterCount = items.filter((it) => !!it.username).length
-  const webCount = items.filter((it) => !it.username).length
+  const openModalWith = (url: string) => {
+    setQuickUrl(url)
+    setModalOpen(true)
+  }
 
   return (
     <div className="mx-auto flex max-w-6xl items-start gap-6">
       {/* ── Left nav (Twitter-style) ─────────────────────────── */}
-      <aside className="sticky top-20 hidden w-56 shrink-0 flex-col gap-1.5 lg:flex">
+      <aside className="sticky top-20 hidden w-56 shrink-0 flex-col gap-1 lg:flex">
+        <button
+          onClick={() => openModalWith('')}
+          className="mb-2 flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-teal-700"
+        >
+          <Plus size={16} />
+          Add site
+        </button>
         <a
           href="#/"
-          className="flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-[15px] font-semibold text-slate-700 transition hover:bg-slate-900/5 hover:text-slate-900"
+          className="flex items-center gap-3 rounded-full px-3 py-2.5 text-[15px] font-medium text-slate-700 transition hover:bg-slate-900/5 hover:text-slate-900"
         >
-          <Home size={20} />
+          <Home size={22} />
           Home
         </a>
         <a
           href="#/feed"
-          className="flex items-center gap-3 rounded-2xl bg-slate-900 px-3.5 py-2.5 text-[15px] font-bold text-white shadow-sm transition"
+          className="flex items-center gap-3 rounded-full bg-slate-900 px-3 py-2.5 text-[15px] font-bold text-white transition"
         >
-          <Newspaper size={20} className="text-teal-400" />
+          <Newspaper size={22} />
           Latest News
         </a>
         <a
           href="#/categories"
-          className="flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-[15px] font-semibold text-slate-700 transition hover:bg-slate-900/5 hover:text-slate-900"
+          className="flex items-center gap-3 rounded-full px-3 py-2.5 text-[15px] font-medium text-slate-700 transition hover:bg-slate-900/5 hover:text-slate-900"
         >
-          <FolderKanban size={20} />
+          <FolderKanban size={22} />
           Categories
         </a>
         <a
           href="#/backup"
-          className="flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-[15px] font-semibold text-slate-700 transition hover:bg-slate-900/5 hover:text-slate-900"
+          className="flex items-center gap-3 rounded-full px-3 py-2.5 text-[15px] font-medium text-slate-700 transition hover:bg-slate-900/5 hover:text-slate-900"
         >
-          <DatabaseBackup size={20} />
+          <DatabaseBackup size={22} />
           Backup
         </a>
-
-        {/* Nest Quick Summary */}
-        <div className="mt-4 rounded-2xl bg-gradient-to-br from-slate-900 to-teal-950 p-4 text-white shadow-md ring-1 ring-white/10">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400">
-            <Radio size={12} className="animate-pulse" />
-            LIVE TIMELINE
-          </div>
-          <p className="mt-1 text-sm font-extrabold">{sites.length} Active Sources</p>
-          <p className="text-xs text-slate-300">
-            {items.length} headlines gathered right now
+        <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+          <p className="text-sm font-bold text-slate-900">Your nest</p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500">
+            {sites.length} sources · {items.length} headlines right now
           </p>
         </div>
       </aside>
 
       {/* ── Center feed column ───────────────────────────────── */}
       <div className="min-w-0 flex-1 sm:max-w-[620px]">
-        {/* Sticky Header with Filter Tabs */}
-        <div className="sticky top-16 z-30 -mx-3.5 border-b border-slate-200/80 bg-white/95 backdrop-blur-md sm:-mx-0 sm:rounded-t-3xl sm:border-x sm:border-t shadow-xs">
-          <div className="flex items-center justify-between px-4 sm:px-5 py-3">
-            <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg font-extrabold text-slate-900">Latest News</h2>
-              <span className="flex h-2 w-2 rounded-full bg-teal-500 animate-pulse" />
-            </div>
-            <button
-              onClick={() => void refresh()}
-              disabled={refreshing || loading}
-              title="Refresh timeline"
-              className="flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-teal-50 hover:text-teal-700 disabled:opacity-50"
-            >
-              <RefreshCw size={13} className={refreshing ? 'animate-spin text-teal-600' : ''} />
-              <span>{refreshing ? 'Updating…' : 'Refresh'}</span>
-            </button>
+        <div className="sticky top-16 z-30 -mx-4 flex items-center justify-between border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:-mx-0 sm:rounded-t-2xl sm:border-x sm:border-t">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-extrabold text-slate-900">Latest News</h2>
+            <Sparkles size={18} className="text-amber-500" />
           </div>
-
-          {/* Quick Sub-tabs */}
-          <div className="flex border-t border-slate-100 px-2 sm:px-4">
-            <button
-              onClick={() => setFilterType('all')}
-              className={`flex-1 py-2 text-center text-xs font-bold transition border-b-2 ${
-                filterType === 'all'
-                  ? 'border-slate-900 text-slate-900'
-                  : 'border-transparent text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              All ({items.length})
-            </button>
-            <button
-              onClick={() => setFilterType('twitter')}
-              className={`flex-1 py-2 text-center text-xs font-bold transition border-b-2 flex items-center justify-center gap-1 ${
-                filterType === 'twitter'
-                  ? 'border-sky-500 text-sky-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              <span className="text-[11px]">𝕏</span> Twitter ({twitterCount})
-            </button>
-            <button
-              onClick={() => setFilterType('web')}
-              className={`flex-1 py-2 text-center text-xs font-bold transition border-b-2 flex items-center justify-center gap-1 ${
-                filterType === 'web'
-                  ? 'border-teal-600 text-teal-700'
-                  : 'border-transparent text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              <Globe size={12} /> Web ({webCount})
-            </button>
-          </div>
+          <button
+            onClick={() => void refresh()}
+            disabled={refreshing || loading}
+            title="Refresh"
+            className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-teal-600 disabled:opacity-50"
+          >
+            <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+          </button>
         </div>
 
-        {/* Feed Posts */}
-        <div className="overflow-hidden rounded-b-3xl bg-white shadow-xs ring-1 ring-slate-200/80 sm:rounded-2xl sm:ring-0">
+        <div className="overflow-hidden rounded-b-2xl bg-white shadow-sm ring-1 ring-slate-200 sm:rounded-2xl sm:ring-0">
+          {/* Composer — like "What's happening?" */}
+          <div className="border-b border-slate-200 px-4 pt-3 pb-2.5">
+            <label className="block text-[15px] font-bold text-slate-900">
+              What are you reading?
+            </label>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Paste a link to save it to your nest
+            </p>
+            <form
+              className="mt-2.5 flex gap-2"
+              onSubmit={(e) => {
+                e.preventDefault()
+                openModalWith(composer)
+                setComposer('')
+              }}
+            >
+              <div className="relative flex-1">
+                <Link2
+                  size={14}
+                  className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400"
+                />
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={composer}
+                  onChange={(e) => setComposer(e.target.value)}
+                  placeholder="https://…"
+                  className="w-full rounded-full border border-slate-200 bg-slate-50 py-2 pr-3 pl-8 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+                />
+              </div>
+              <button
+                type="submit"
+                className="rounded-full bg-slate-900 px-4 text-sm font-bold text-white transition hover:bg-teal-700"
+              >
+                Add
+              </button>
+            </form>
+          </div>
+
+          {/* Timeline */}
           {loading && visible.length === 0 ? (
             <div>
               <TweetSkeleton />
@@ -471,18 +355,15 @@ export function Feed() {
                 const itemId = `${item.domain}-${i}-${item.publishedAt ?? ''}`
                 const isLiked = liked.has(itemId)
                 const urlHash = hashNum(item.url)
-                const baseLikes = 12 + (urlHash % 450)
+                const baseLikes = 8 + (urlHash % 400)
                 const likes = baseLikes + (isLiked ? 1 : 0)
-                const replies = 3 + (hashNum(item.url + 'r') % 70)
-                const reposts = 4 + (hashNum(item.url + 'p') % 110)
-                const views = 1200 + (urlHash % 15000)
-
-                const parsed = parseTweetDisplay(item)
-
+                const replies = 2 + (hashNum(item.url + 'r') % 60)
+                const reposts = 3 + (hashNum(item.url + 'p') % 90)
+                const views = 800 + (urlHash % 12000)
                 return (
                   <article
                     key={itemId}
-                    className="group flex cursor-pointer gap-3.5 border-b border-slate-100 px-5 py-4 transition hover:bg-slate-50/90"
+                    className="group flex cursor-pointer gap-3 border-b border-slate-200 px-4 py-3 transition hover:bg-slate-50"
                     onClick={() =>
                       window.open(item.url, '_blank', 'noopener,noreferrer')
                     }
@@ -496,98 +377,54 @@ export function Feed() {
                   >
                     <FeedAvatar item={item} />
                     <div className="min-w-0 flex-1">
-                      {/* Repost Header */}
-                      {parsed.isRepost && (
+                      {item.repost && (
                         <div
-                          className="mb-1.5 flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 w-fit"
+                          className="mb-1 flex items-center gap-1.5 text-xs text-slate-500"
                           dir="ltr"
                         >
-                          <Repeat2 size={12} />
-                          <span>@{parsed.repostedBy || item.username || ''} reposted</span>
+                          <Repeat2 size={13} />
+                          <span>
+                            @{item.repostedBy ?? ''} reposted
+                          </span>
                         </div>
                       )}
-
-                      {/* Header Info */}
-                      <div className="flex flex-wrap items-center gap-x-1.5 text-[15px] leading-tight">
+                      <div className="flex flex-wrap items-center gap-x-1 text-[15px] leading-tight">
                         <span className="font-bold text-slate-900 hover:underline">
-                          {parsed.isRepost && parsed.originalAuthor
-                            ? `@${parsed.originalAuthor}`
+                          {item.repost && item.originalAuthor
+                            ? `@${item.originalAuthor}`
                             : item.source}
                         </span>
                         <BadgeCheck
                           size={16}
                           className={
-                            item.username && !parsed.isRepost ? 'text-sky-500' : 'text-slate-300'
+                            item.username && !item.repost ? 'text-sky-500' : 'text-slate-400'
                           }
                         />
-                        <span
-                          className={`truncate font-semibold text-sm ${
-                            item.username ? 'text-sky-600' : 'text-teal-600'
-                          }`}
-                          dir="ltr"
-                        >
+                        <span className="truncate text-slate-500">
                           @
-                          {parsed.isRepost && parsed.originalAuthor
-                            ? parsed.originalAuthor
+                          {item.repost && item.originalAuthor
+                            ? item.originalAuthor
                             : item.username ?? item.domain}
                         </span>
                         <span className="text-slate-300">·</span>
-                        <span className="shrink-0 text-slate-400 text-xs font-medium">
+                        <span className="shrink-0 text-slate-500">
                           {item.publishedAt ? timeAgo(item.publishedAt) : 'just now'}
                         </span>
                       </div>
 
-                      {/* Reply indicator */}
-                      {parsed.replyTo && (
-                        <div
-                          className="mt-0.5 mb-1 flex items-center gap-1.5 text-xs text-slate-500 font-medium"
-                          dir="ltr"
-                        >
-                          <MessageSquare size={12} className="text-slate-400 shrink-0" />
-                          <span>
-                            Replying to{' '}
-                            <span className="font-bold text-sky-600 hover:underline">
-                              @{parsed.replyTo}
-                            </span>
-                          </span>
-                        </div>
-                      )}
+                      <p className="mt-0.5 text-[15px] leading-snug whitespace-pre-wrap text-slate-900">
+                        {item.title}
+                      </p>
 
-                      {/* Tweet / Post Content */}
-                      <FormattedPostContent text={parsed.cleanTitle} />
-
-                      {/* Embedded Image Preview (Twitter / Post media) */}
-                      {parsed.displayImage && (
-                        <div
-                          className="mt-3 overflow-hidden rounded-2xl border border-slate-200/90 bg-slate-950/5 shadow-sm transition hover:shadow-md max-h-96"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            window.open(parsed.displayImage, '_blank', 'noopener,noreferrer')
-                          }}
-                        >
-                          <img
-                            src={parsed.displayImage}
-                            alt="Post attachment"
-                            loading="lazy"
-                            referrerPolicy="no-referrer"
-                            className="w-full max-h-96 object-cover transition hover:scale-[1.01]"
-                            onError={(e) => {
-                              (e.target as HTMLElement).parentElement?.classList.add('hidden')
-                            }}
-                          />
-                        </div>
-                      )}
-
-                      {/* Translation action */}
-                      {item.username && !containsArabic(parsed.cleanTitle) && (
-                        <div className="mt-2">
+                      {item.username && !containsArabic(item.title) && (
+                        <div className="mt-1.5">
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
-                              void toggleTranslate(itemId, parsed.cleanTitle)
+                              void toggleTranslate(itemId, item.title)
                             }}
                             disabled={translatingId === itemId}
-                            className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700 transition hover:bg-sky-100 disabled:opacity-50 ring-1 ring-sky-200"
+                            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold text-sky-600 transition hover:bg-sky-500/10 disabled:opacity-50"
                           >
                             <Languages
                               size={13}
@@ -597,12 +434,12 @@ export function Feed() {
                               ? 'Show original'
                               : translatingId === itemId
                                 ? 'Translating…'
-                                : 'Translate to Arabic'}
+                                : 'Translate'}
                           </button>
                           {translations.has(itemId) && (
                             <div
                               dir="rtl"
-                              className="mt-2 rounded-2xl bg-teal-500/10 p-3.5 text-sm leading-relaxed text-slate-900 ring-1 ring-teal-500/20 font-medium"
+                              className="mt-1.5 rounded-2xl bg-teal-600/5 px-3.5 py-2.5 text-sm leading-relaxed text-slate-800 ring-1 ring-teal-600/15"
                             >
                               {translations.get(itemId)}
                             </div>
@@ -610,52 +447,46 @@ export function Feed() {
                         </div>
                       )}
 
-                      {/* Website preview card for non-twitter news */}
                       {!item.username && (
                         <div
-                          className="mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/80 transition group-hover:border-teal-300 group-hover:bg-teal-50/50"
-                          style={{ borderLeft: '4px solid #0d9488' }}
+                          className="mt-3 flex items-center gap-3 overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 transition group-hover:border-slate-300"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <div className="flex items-center gap-3.5 p-3.5">
-                            <CircleAvatar
-                              sources={[
-                                faviconUrl(item.domain),
-                                faviconFallbackUrl(item.domain),
-                              ]}
-                              letter={domainInitial(item.domain)}
-                              size={36}
-                              rounded="rounded-xl"
-                            />
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-[13px] font-bold text-slate-900 leading-snug">
-                                {parsed.cleanTitle}
-                              </p>
-                              <p className="mt-0.5 flex items-center gap-1 truncate text-xs font-semibold text-teal-700" dir="ltr">
-                                <Link2 size={11} />
-                                {item.domain}
-                              </p>
-                            </div>
-                            <ExternalLink size={15} className="shrink-0 text-teal-600 opacity-60 group-hover:opacity-100 transition" />
+                          <CircleAvatar
+                            sources={[
+                              faviconUrl(item.domain),
+                              faviconFallbackUrl(item.domain),
+                            ]}
+                            letter={domainInitial(item.domain)}
+                            size={36}
+                            rounded="rounded-xl"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-slate-900">
+                              {item.title}
+                            </p>
+                            <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-slate-500" dir="ltr">
+                              {item.domain}
+                              <span className="text-slate-400">↗</span>
+                            </p>
                           </div>
                         </div>
                       )}
 
-                      {/* Action Bar */}
-                      <div className="mt-3 flex max-w-[425px] items-center justify-between text-slate-500">
+                      <div className="mt-2.5 flex max-w-[425px] items-center justify-between text-slate-500">
                         <button
                           onClick={(e) => e.stopPropagation()}
                           className="flex items-center gap-1.5 rounded-full p-1.5 text-xs transition hover:bg-sky-500/10 hover:text-sky-500"
                         >
-                          <MessageCircle size={16} />
-                          <span className="font-semibold">{fmtCount(replies)}</span>
+                          <MessageCircle size={15} />
+                          <span>{fmtCount(replies)}</span>
                         </button>
                         <button
                           onClick={(e) => e.stopPropagation()}
                           className="flex items-center gap-1.5 rounded-full p-1.5 text-xs transition hover:bg-emerald-500/10 hover:text-emerald-500"
                         >
-                          <Repeat2 size={17} />
-                          <span className="font-semibold">{fmtCount(reposts)}</span>
+                          <Repeat2 size={16} />
+                          <span>{fmtCount(reposts)}</span>
                         </button>
                         <button
                           onClick={(e) => {
@@ -664,19 +495,19 @@ export function Feed() {
                           }}
                           className={`flex items-center gap-1.5 rounded-full p-1.5 text-xs transition ${
                             isLiked
-                              ? 'text-rose-500 font-bold'
-                              : 'hover:bg-rose-500/10 hover:text-rose-500 font-semibold'
+                              ? 'text-rose-500'
+                              : 'hover:bg-rose-500/10 hover:text-rose-500'
                           }`}
                         >
-                          <Heart size={16} fill={isLiked ? 'currentColor' : 'none'} />
+                          <Heart size={15} fill={isLiked ? 'currentColor' : 'none'} />
                           <span>{fmtCount(likes)}</span>
                         </button>
                         <button
                           onClick={(e) => e.stopPropagation()}
                           className="flex items-center gap-1.5 rounded-full p-1.5 text-xs transition hover:bg-slate-900/5"
                         >
-                          <Eye size={17} />
-                          <span className="font-semibold">{fmtCount(views)}</span>
+                          <Eye size={16} />
+                          <span>{fmtCount(views)}</span>
                         </button>
                         <button
                           onClick={(e) => {
@@ -686,7 +517,7 @@ export function Feed() {
                           title="Copy link"
                           className="rounded-full p-1.5 transition hover:bg-sky-500/10 hover:text-sky-500"
                         >
-                          <Share2 size={16} />
+                          <Share2 size={15} />
                         </button>
                       </div>
                     </div>
@@ -695,17 +526,14 @@ export function Feed() {
               })}
             </div>
           ) : (
-            <div className="px-6 py-16 text-center">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 mb-3">
-                <Search size={22} />
-              </div>
-              <p className="text-sm font-bold text-slate-900">
+            <div className="px-6 py-14 text-center">
+              <p className="text-sm font-semibold text-slate-900">
                 {query ? 'No headlines match your search' : 'No headlines yet'}
               </p>
               <p className="mx-auto mt-1 max-w-xs text-xs text-slate-500">
                 {query
-                  ? 'Try a different keyword or check other filter tabs.'
-                  : 'Hit refresh or add more news sites from the Dashboard.'}
+                  ? 'Try a different keyword.'
+                  : 'Hit refresh, or add more news sites and Twitter accounts.'}
               </p>
             </div>
           )}
@@ -714,7 +542,6 @@ export function Feed() {
 
       {/* ── Right sidebar ────────────────────────────────────── */}
       <aside className="sticky top-20 hidden w-80 shrink-0 flex-col gap-4 xl:flex">
-        {/* Search */}
         <div className="relative">
           <Search
             size={15}
@@ -724,100 +551,102 @@ export function Feed() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search news and posts…"
+            placeholder="Search news"
             className="w-full rounded-full border border-slate-200 bg-white py-2.5 pr-4 pl-10 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
           />
         </div>
 
-        {/* Trending Sources */}
-        <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
-          <h3 className="px-2 pt-1 pb-2 text-base font-extrabold text-slate-900 flex items-center gap-2">
-            <Sparkles size={16} className="text-amber-500" />
+        <div className="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+          <h3 className="px-4 pt-3 pb-1 text-lg font-extrabold text-slate-900">
             Trending in your nest
           </h3>
           {trending.length > 0 ? (
-            <div className="flex flex-col gap-0.5">
-              {trending.map(([key, count], i) => (
-                <button
-                  key={key}
-                  onClick={() => setQuery(key)}
-                  className="block w-full rounded-2xl px-3 py-2.5 text-left transition hover:bg-slate-50"
-                >
-                  <p className="text-[11px] font-semibold text-slate-400">#{i + 1} Trending Source</p>
-                  <p className="text-sm font-bold text-slate-900">@{key}</p>
-                  <p className="text-xs text-slate-500 font-medium">
-                    {count} headline{count === 1 ? '' : 's'} today
-                  </p>
-                </button>
-              ))}
-            </div>
+            trending.map(([key, count], i) => (
+              <button
+                key={key}
+                onClick={() => setQuery(key)}
+                className="block w-full px-4 py-2.5 text-left transition hover:bg-slate-50"
+              >
+                <p className="text-xs text-slate-500">Trending {i + 1}</p>
+                <p className="text-[15px] font-bold text-slate-900">@{key}</p>
+                <p className="text-xs text-slate-500">
+                  {count} post{count === 1 ? '' : 's'} · your sources
+                </p>
+              </button>
+            ))
           ) : (
-            <p className="px-3 py-4 text-center text-xs text-slate-400">
+            <p className="px-4 py-6 text-center text-xs text-slate-400">
               No headlines yet
             </p>
           )}
         </div>
 
-        {/* Who to Follow */}
-        <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
-          <h3 className="px-2 pt-1 pb-2 text-base font-extrabold text-slate-900">
-            Suggested Sources
+        <div className="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+          <h3 className="px-4 pt-3 pb-1 text-lg font-extrabold text-slate-900">
+            Who to follow
           </h3>
-          <div className="flex flex-col gap-1">
-            {sites.slice(0, 5).map((site) => {
-              const key = site.kind === 'twitter' ? extractUser(site.url) : site.domain
-              const isFollowing = following.has(key)
-              return (
-                <div
-                  key={site.id}
-                  className="flex items-center gap-3 rounded-2xl px-3 py-2 transition hover:bg-slate-50"
-                >
-                  <CircleAvatar
-                    sources={
-                      site.kind === 'twitter'
-                        ? twitterAvatarSources(extractUser(site.url))
-                        : [faviconUrl(site.domain), faviconFallbackUrl(site.domain)]
-                    }
-                    letter={domainInitial(site.kind === 'twitter' ? extractUser(site.url) : site.domain)}
-                    size={36}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="flex items-center gap-1 truncate text-xs font-bold text-slate-900">
-                      {site.title}
-                      {site.kind === 'twitter' && (
-                        <BadgeCheck size={13} className="shrink-0 text-sky-500" />
-                      )}
-                    </p>
-                    <p className="truncate text-[11px] text-slate-400 font-medium" dir="ltr">
-                      @{site.kind === 'twitter' ? extractUser(site.url) : site.domain}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => toggleFollow(key)}
-                    className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold transition ${
-                      isFollowing
-                        ? 'bg-slate-100 text-slate-900 ring-1 ring-slate-200'
-                        : 'bg-slate-900 text-white hover:bg-teal-600 shadow-sm'
-                    }`}
-                  >
-                    {isFollowing ? (
-                      <span className="inline-flex items-center gap-1">
-                        <Check size={11} />
-                        Done
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1">
-                        <UserPlus size={11} />
-                        Follow
-                      </span>
+          {sites.slice(0, 5).map((site) => {
+            const key = site.kind === 'twitter' ? extractUser(site.url) : site.domain
+            const isFollowing = following.has(key)
+            return (
+              <div
+                key={site.id}
+                className="flex items-center gap-3 px-4 py-2.5 transition hover:bg-slate-50"
+              >
+                <CircleAvatar
+                  sources={
+                    site.kind === 'twitter'
+                      ? [twitterAvatarUrl(extractUser(site.url)), twitterAvatarFallbackUrl(extractUser(site.url))]
+                      : [faviconUrl(site.domain), faviconFallbackUrl(site.domain)]
+                  }
+                  letter={domainInitial(site.kind === 'twitter' ? extractUser(site.url) : site.domain)}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-1 truncate text-sm font-bold text-slate-900">
+                    {site.title}
+                    {site.kind === 'twitter' && (
+                      <BadgeCheck size={14} className="shrink-0 text-sky-500" />
                     )}
-                  </button>
+                  </p>
+                  <p className="truncate text-xs text-slate-500" dir="ltr">
+                    @{site.kind === 'twitter' ? extractUser(site.url) : site.domain}
+                  </p>
                 </div>
-              )
-            })}
-          </div>
+                <button
+                  onClick={() => toggleFollow(key)}
+                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
+                    isFollowing
+                      ? 'bg-slate-900/5 text-slate-900 ring-1 ring-slate-300'
+                      : 'bg-slate-900 text-white hover:bg-teal-700'
+                  }`}
+                >
+                  {isFollowing ? (
+                    <span className="inline-flex items-center gap-1">
+                      <Check size={12} />
+                      Following
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1">
+                      <UserPlus size={12} />
+                      Follow
+                    </span>
+                  )}
+                </button>
+              </div>
+            )
+          })}
         </div>
       </aside>
+
+      <SiteModal
+        open={modalOpen}
+        editing={null}
+        defaultUrl={quickUrl}
+        onClose={() => {
+          setModalOpen(false)
+          setQuickUrl('')
+        }}
+      />
     </div>
   )
 }
