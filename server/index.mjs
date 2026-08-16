@@ -523,18 +523,33 @@ async function fetchForSite(site, perSite) {
 /* ── API ────────────────────────────────────────────────────── */
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, redis: !!redis, mongo: !!users })
+  res.json({
+    ok: true,
+    redis: !!redis,
+    mongo: !!users,
+    configured: {
+      mongodb: Boolean(MONGODB_URI),
+      authSecret: Boolean(AUTH_SECRET && AUTH_SECRET.length >= 32),
+    },
+  })
 })
+
+function databaseSetupError(err) {
+  const missing = !MONGODB_URI
+  return {
+    error: missing
+      ? 'Online database is not set up yet. Add MONGODB_URI in Vercel Environment Variables, then redeploy.'
+      : 'Online database could not connect. In MongoDB Atlas, allow Vercel network access and check MONGODB_URI.',
+    detail: err?.message,
+  }
+}
 
 app.post('/api/auth/signup', async (req, res) => {
   let usersCollection
   try {
     usersCollection = await getUsersCollection()
   } catch (err) {
-    return res.status(503).json({
-      error: 'Database is not connected yet. Check your MongoDB Atlas network access and URI.',
-      detail: err.message,
-    })
+    return res.status(503).json(databaseSetupError(err))
   }
   const email = normalizeEmail(req.body?.email)
   const name = String(req.body?.name ?? '').trim()
@@ -574,10 +589,7 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     usersCollection = await getUsersCollection()
   } catch (err) {
-    return res.status(503).json({
-      error: 'Database is not connected yet. Check your MongoDB Atlas network access and URI.',
-      detail: err.message,
-    })
+    return res.status(503).json(databaseSetupError(err))
   }
   const email = normalizeEmail(req.body?.email)
   const password = String(req.body?.password ?? '')
