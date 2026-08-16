@@ -1,6 +1,7 @@
 import type { AppData, Category } from '../types'
 
-const STORAGE_KEY = 'gather-links:v1'
+const STORAGE_KEY = 'nagnest:v1'
+const LEGACY_STORAGE_KEY = 'gather-links:v1'
 
 export const CATEGORY_COLORS = [
   '#0d9488',
@@ -40,7 +41,14 @@ function defaultData(): AppData {
 
 export function loadData(): AppData {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    let raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) {
+      const legacy = localStorage.getItem(LEGACY_STORAGE_KEY)
+      if (legacy) {
+        localStorage.setItem(STORAGE_KEY, legacy)
+        raw = legacy
+      }
+    }
     if (!raw) return defaultData()
     const parsed = JSON.parse(raw) as AppData
     if (!parsed || !Array.isArray(parsed.sites) || !Array.isArray(parsed.categories)) {
@@ -74,7 +82,7 @@ export function exportData(data: AppData): void {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `gather-links-backup-${new Date().toISOString().slice(0, 10)}.json`
+  a.download = `nagnest-backup-${new Date().toISOString().slice(0, 10)}.json`
   a.click()
   URL.revokeObjectURL(url)
 }

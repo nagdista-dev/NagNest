@@ -6,9 +6,10 @@ import {
   Star,
   Pencil,
   Trash2,
+  Copy,
 } from 'lucide-react'
 import type { Site } from '../types'
-import { useSites } from '../context/SitesContext'
+import { useSites } from '../context/useSites'
 import {
   faviconUrl,
   faviconFallbackUrl,
@@ -27,7 +28,7 @@ interface SiteCardProps {
 }
 
 export function SiteCard({ site, onEdit }: SiteCardProps) {
-  const { categories, togglePin, registerVisit, deleteSite, notify } = useSites()
+  const { categories, togglePin, registerVisit, deleteSite, undoLast, notify } = useSites()
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [imgSource, setImgSource] = useState(0)
   const category = categories.find((c) => c.id === site.categoryId)
@@ -48,7 +49,7 @@ export function SiteCard({ site, onEdit }: SiteCardProps) {
   return (
     <>
       <div
-        className="group relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-lg"
+        className="group relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-lg hover:ring-slate-300"
         role="link"
         tabIndex={0}
         onClick={open}
@@ -71,7 +72,8 @@ export function SiteCard({ site, onEdit }: SiteCardProps) {
               src={sources[imgSource]}
               alt=""
               loading="lazy"
-              className={`h-12 w-12 bg-white/95 object-cover shadow-md ring-1 ring-black/10 ${
+              referrerPolicy="no-referrer"
+              className={`h-12 w-12 bg-white object-cover shadow-md ring-1 ring-black/10 ${
                 isAvatar ? 'rounded-full' : 'rounded-xl p-2'
               }`}
               onError={() => setImgSource((s) => s + 1)}
@@ -91,7 +93,7 @@ export function SiteCard({ site, onEdit }: SiteCardProps) {
             }}
             className={`absolute top-2 right-2 rounded-lg p-1.5 backdrop-blur transition ${
               site.pinned
-                ? 'bg-amber-400/90 text-white shadow'
+                ? 'bg-gold text-white shadow'
                 : 'bg-black/25 text-white/90 opacity-0 hover:bg-black/40 group-hover:opacity-100'
             }`}
           >
@@ -140,6 +142,17 @@ export function SiteCard({ site, onEdit }: SiteCardProps) {
 
         <div className="absolute top-2 left-2 flex gap-1 opacity-0 transition group-hover:opacity-100">
           <button
+            title="Copy link"
+            onClick={(e) => {
+              e.stopPropagation()
+              navigator.clipboard.writeText(site.url).catch(() => undefined)
+              notify('Link copied')
+            }}
+            className="rounded-lg bg-black/25 p-1.5 text-white/90 backdrop-blur hover:bg-black/40"
+          >
+            <Copy size={13} />
+          </button>
+          <button
             title="Edit"
             onClick={(e) => {
               e.stopPropagation()
@@ -172,7 +185,12 @@ export function SiteCard({ site, onEdit }: SiteCardProps) {
         onConfirm={() => {
           deleteSite(site.id)
           setConfirmOpen(false)
-          notify('Site deleted')
+          notify('Site deleted', 'success', {
+            label: 'Undo',
+            onClick: () => {
+              if (undoLast()) notify('Site restored')
+            },
+          })
         }}
       />
     </>

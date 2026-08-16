@@ -1,11 +1,20 @@
 import { useRef, useState } from 'react'
 import { FolderKanban, Plus, Trash2 } from 'lucide-react'
-import { useSites } from '../context/SitesContext'
+import { useSites } from '../context/useSites'
 import { CATEGORY_COLORS, UNCATEGORIZED_ID } from '../lib/storage'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 
 export function Categories() {
-  const { categories, sites, addCategory, renameCategory, recolorCategory, deleteCategory, notify } = useSites()
+  const {
+    categories,
+    sites,
+    addCategory,
+    renameCategory,
+    recolorCategory,
+    deleteCategory,
+    undoLast,
+    notify,
+  } = useSites()
   const [newName, setNewName] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
@@ -36,7 +45,7 @@ export function Categories() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900">
+        <h2 className="flex items-center gap-2 font-heading text-lg font-bold text-slate-900">
           <FolderKanban size={19} className="text-teal-600" />
           Categories
         </h2>
@@ -48,7 +57,9 @@ export function Categories() {
       <section className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
-            <label className="mb-1.5 block text-xs font-medium text-slate-600">New category</label>
+            <label className="mb-1.5 block text-xs font-medium text-slate-600">
+              New category
+            </label>
             <input
               ref={inputRef}
               type="text"
@@ -69,7 +80,7 @@ export function Categories() {
                   onClick={() => setSelectedColor(color)}
                   className={`h-6 w-6 rounded-full transition ${
                     selectedColor === color
-                      ? 'scale-110 ring-2 ring-slate-900 ring-offset-2'
+                      ? 'scale-110 ring-2 ring-slate-900 ring-offset-2 ring-offset-white'
                       : 'hover:scale-110'
                   }`}
                   style={{ backgroundColor: color }}
@@ -80,7 +91,7 @@ export function Categories() {
           </div>
           <button
             onClick={handleAdd}
-            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-700"
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700"
           >
             <Plus size={15} />
             Create
@@ -124,16 +135,18 @@ export function Categories() {
                       if (value && value !== c.name) renameCategory(c.id, value)
                       setEditingId(null)
                     }}
-                    className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm font-medium text-slate-900 outline-none focus:border-teal-500"
+                    className="w-full rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1.5 text-sm font-medium text-slate-900 outline-none focus:border-teal-500"
                   />
                 ) : (
                   <button
-                    className="text-sm font-semibold text-slate-900 hover:text-teal-700"
+                    className="text-sm font-semibold text-slate-900 hover:text-teal-600"
                     onClick={() => !isFixed && setEditingId(c.id)}
                     title={isFixed ? 'Fixed category' : 'Click to rename'}
                   >
                     {c.name}
-                    {isFixed && <span className="ml-2 text-xs font-normal text-slate-400">fixed</span>}
+                    {isFixed && (
+                      <span className="ml-2 text-xs font-normal text-slate-500">fixed</span>
+                    )}
                   </button>
                 )}
                 <p className="text-xs text-slate-400">
@@ -153,7 +166,7 @@ export function Categories() {
                         }}
                         className={`h-5 w-5 rounded-full transition hover:scale-110 ${
                           c.color === color
-                            ? 'ring-2 ring-slate-900 ring-offset-1'
+                            ? 'ring-2 ring-white ring-offset-1 ring-offset-slate-800'
                             : 'opacity-40 hover:opacity-100'
                         }`}
                         style={{ backgroundColor: color }}
@@ -189,7 +202,12 @@ export function Categories() {
         onConfirm={() => {
           if (pendingDelete) {
             deleteCategory(pendingDelete)
-            notify('Category deleted')
+            notify('Category deleted', 'success', {
+              label: 'Undo',
+              onClick: () => {
+                if (undoLast()) notify('Category restored')
+              },
+            })
           }
           setPendingDelete(null)
         }}

@@ -21,8 +21,8 @@ export interface HeadlinesOptions {
 }
 
 const RSS2JSON = 'https://api.rss2json.com/v1/api.json?rss_url='
-const CACHE_KEY = 'linknest:ticker:v3'
-const FEED_MAP_KEY = 'linknest:ticker-feeds:v1'
+const CACHE_KEY = 'nagnest:ticker:v3'
+const FEED_MAP_KEY = 'nagnest:ticker-feeds:v1'
 const TTL = 20 * 60 * 1000
 const MAX_SITES = 12
 const MAX_PER_SITE = 2
@@ -118,11 +118,19 @@ async function fetchViaRss2Json(
   const text = await fetchText(RSS2JSON + encodeURIComponent(feed))
   const json = JSON.parse(text) as {
     status?: string
-    items?: { title?: string; link?: string; pubDate?: string }[]
+    items?: {
+      title?: string
+      link?: string
+      pubDate?: string
+      description?: string
+      content?: string
+      thumbnail?: string
+      enclosure?: unknown
+    }[]
   }
   if (json.status !== 'ok' || !Array.isArray(json.items)) return []
   return json.items
-    .filter((it): it is { title?: string; link?: string; pubDate?: string } => !!it)
+    .filter((it): it is NonNullable<(typeof json.items)[number]> => !!it)
     .filter((it) => it.title && it.link)
     .slice(0, perSite)
     .map((it) => {
@@ -133,8 +141,54 @@ async function fetchViaRss2Json(
         source,
         domain,
         publishedAt: Number.isFinite(published) ? published : undefined,
+        image: extractImage(it),
       }
     })
+}
+
+function extractImage(it: {
+  thumbnail?: string
+  enclosure?: unknown
+  description?: string
+  content?: string
+}): string | undefined {
+  const thumb =
+    typeof it.thumbnail === 'string' && it.thumbnail ? normalizeImage(it.thumbnail) : undefined
+  if (thumb) return thumb
+
+  const enc = it.enclosure
+  if (typeof enc === 'string') {
+    const img = normalizeImage(enc)
+    if (img) return img
+  }
+  if (enc && typeof enc === 'object') {
+    const obj = enc as { url?: string; type?: string }
+    if (typeof obj.url === 'string' && (!obj.type || String(obj.type).startsWith('image'))) {
+      const img = normalizeImage(obj.url)
+      if (img) return img
+    }
+  }
+
+  const html = `${it.description ?? ''}${it.content ?? ''}`
+  const match = html.match(/<img[^>]+src=["']([^"']+)["']/i)
+  if (match) {
+    const img = normalizeImage(match[1])
+    if (img) return img
+  }
+  return undefined
+}
+
+function normalizeImage(src: string): string | undefined {
+  if (!src || !/^https?:\/\//i.test(src)) return undefined
+  if (src.startsWith('https://nitter.net/pic/')) {
+    try {
+      const decoded = decodeURIComponent(src).replace('https://nitter.net/pic/', '')
+      return `https://pbs.twimg.com/${decoded}`
+    } catch {
+      return undefined
+    }
+  }
+  return src
 }
 
 async function fetchForSite(site: Site, perSite: number): Promise<TickerItem[]> {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link2, X } from 'lucide-react'
 import type { Site } from '../types'
-import { useSites } from '../context/SitesContext'
+import { useSites } from '../context/useSites'
 import {
   normalizeUrl,
   faviconUrl,
@@ -58,39 +58,39 @@ export function SiteModal({ open, editing, defaultUrl, onClose }: SiteModalProps
     return () => window.removeEventListener('keydown', handler)
   }, [open, onClose])
 
-  const parsed = useMemo(() => (editing ? null : normalizeUrl(urlInput)), [urlInput, editing])
+  const parsed = useMemo(() => normalizeUrl(urlInput), [urlInput])
+  const urlChanged = editing ? urlInput.trim() !== editing.url : true
 
-  const isTwitter = editing
-    ? editing.kind === 'twitter'
-    : !!parsed && isTwitterDomain(parsed.hostname) && !!extractTwitterUsername(parsed.url)
+  const isTwitter =
+    !!parsed && isTwitterDomain(parsed.hostname) && !!extractTwitterUsername(parsed.url)
 
-  const twitterUser = isTwitter
-    ? (editing?.kind === 'twitter' ? extractTwitterUsername(editing.url) : parsed && extractTwitterUsername(parsed.url)) ?? null
-    : null
+  const twitterUser = isTwitter ? extractTwitterUsername(parsed.url) : null
 
   const derivedTitle = useMemo(() => {
     if (title.trim()) return title.trim()
-    if (editing) return editing.title
+    if (editing && !urlChanged) return editing.title
     if (parsed && isTwitter && twitterUser) return `@${twitterUser}`
     return parsed ? hostToTitle(parsed.domain) : ''
-  }, [title, parsed, editing, isTwitter, twitterUser])
+  }, [title, parsed, editing, urlChanged, isTwitter, twitterUser])
 
   const duplicate = useMemo(() => {
-    if (editing || !parsed) return null
+    if (!parsed || !parsed.url) return null
+    const others = editing ? sites.filter((s) => s.id !== editing.id) : sites
     if (isTwitter && twitterUser) {
-      const existing = sites.find(
-        (s) =>
-          s.kind === 'twitter' &&
-          extractTwitterUsername(s.url)?.toLowerCase() === twitterUser.toLowerCase(),
+      return (
+        others.find(
+          (s) =>
+            s.kind === 'twitter' &&
+            extractTwitterUsername(s.url)?.toLowerCase() === twitterUser.toLowerCase(),
+        ) ?? null
       )
-      return existing ?? null
     }
-    return sites.find((s) => s.domain === parsed.domain) ?? null
+    return others.find((s) => s.domain === parsed.domain) ?? null
   }, [parsed, sites, editing, isTwitter, twitterUser])
 
   useEffect(() => {
-    if (!open) return
-    if (isTwitter && !editing) {
+    if (!open || editing) return
+    if (isTwitter) {
       setCategoryId((prev) => {
         if (prev !== UNCATEGORIZED_ID) return prev
         return categories.some((c) => c.id === TWITTER_CATEGORY_ID)
@@ -104,15 +104,33 @@ export function SiteModal({ open, editing, defaultUrl, onClose }: SiteModalProps
 
   const handleSave = () => {
     if (editing) {
+      let url = editing.url
+      let domain = editing.domain
+      let kind = editing.kind
+      if (urlChanged) {
+        if (!parsed || !parsed.url) {
+          notify('Enter a valid URL', 'error')
+          return
+        }
+        if (duplicate) {
+          notify(`"${duplicate.title}" is already in your nest`, 'error')
+          return
+        }
+        url = parsed.url
+        domain = parsed.domain
+        kind = isTwitter ? 'twitter' : 'website'
+      }
       updateSite(editing.id, {
-        url: editing.url,
+        url,
+        domain,
+        kind,
         title: derivedTitle || editing.title,
         categoryId,
         note: note.trim(),
       })
       notify('Changes saved')
     } else {
-      if (!parsed) {
+      if (!parsed || !parsed.url) {
         notify('Enter a valid URL', 'error')
         return
       }
@@ -134,6 +152,8 @@ export function SiteModal({ open, editing, defaultUrl, onClose }: SiteModalProps
     onClose()
   }
 
+  const urlInvalid = urlTouched && (!parsed || !parsed.url)
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
@@ -148,7 +168,7 @@ export function SiteModal({ open, editing, defaultUrl, onClose }: SiteModalProps
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-600/10 text-teal-600">
               <Link2 size={16} />
             </div>
-            <h2 className="text-sm font-semibold text-slate-900">
+            <h2 className="font-heading text-sm font-semibold text-slate-900">
               {editing ? 'Edit site' : 'Add a new site'}
             </h2>
           </div>
@@ -162,15 +182,12 @@ export function SiteModal({ open, editing, defaultUrl, onClose }: SiteModalProps
 
         <div className="flex flex-col gap-4 px-5 py-5">
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-slate-600">
-              {editing ? 'URL (read only)' : 'URL'}
-            </label>
+            <label className="mb-1.5 block text-xs font-medium text-slate-600">URL</label>
             <div className="relative">
               <input
                 ref={urlRef}
                 type="text"
                 dir="ltr"
-                readOnly={!!editing}
                 placeholder="https://example.com"
                 value={urlInput}
                 onChange={(e) => {
@@ -178,15 +195,13 @@ export function SiteModal({ open, editing, defaultUrl, onClose }: SiteModalProps
                   setUrlTouched(true)
                 }}
                 className={`w-full rounded-xl border bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:ring-2 ${
-                  urlTouched && !editing && (!parsed || !parsed.url)
+                  urlInvalid
                     ? 'border-rose-300 focus:ring-rose-200'
                     : 'border-slate-200 focus:border-teal-500 focus:ring-teal-100'
-                } ${editing ? 'cursor-not-allowed opacity-70' : ''}`}
+                }`}
               />
             </div>
-            {urlTouched && !editing && !parsed && (
-              <p className="mt-1 text-xs text-rose-500">Please enter a valid URL</p>
-            )}
+            {urlInvalid && <p className="mt-1 text-xs text-rose-500">Please enter a valid URL</p>}
             {isTwitter && (
               <p className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-sky-600">
                 Twitter / X account detected — @{twitterUser}
@@ -206,13 +221,11 @@ export function SiteModal({ open, editing, defaultUrl, onClose }: SiteModalProps
             <input
               type="text"
               placeholder={
-                editing
-                  ? editing.title
-                  : parsed
-                    ? isTwitter && twitterUser
-                      ? `@${twitterUser}`
-                      : hostToTitle(parsed.domain)
-                    : 'Auto from link…'
+                parsed
+                  ? isTwitter && twitterUser
+                    ? `@${twitterUser}`
+                    : hostToTitle(parsed.domain)
+                  : 'Auto from link…'
               }
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -278,6 +291,7 @@ export function SiteModal({ open, editing, defaultUrl, onClose }: SiteModalProps
                   <img
                     src={twitterAvatarUrl(twitterUser)}
                     alt=""
+                    referrerPolicy="no-referrer"
                     className="h-8 w-8 rounded-full bg-white object-cover ring-1 ring-slate-200"
                     onError={() => setAvatarFailed(true)}
                   />
@@ -286,6 +300,7 @@ export function SiteModal({ open, editing, defaultUrl, onClose }: SiteModalProps
                 <img
                   src={faviconUrl(parsed.domain)}
                   alt=""
+                  referrerPolicy="no-referrer"
                   className="h-8 w-8 rounded-lg bg-white object-contain p-1 ring-1 ring-slate-200"
                   onError={(e) => {
                     ;(e.target as HTMLImageElement).style.display = 'none'
@@ -311,7 +326,7 @@ export function SiteModal({ open, editing, defaultUrl, onClose }: SiteModalProps
           </button>
           <button
             onClick={handleSave}
-            className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700"
+            className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700"
           >
             {editing ? 'Save changes' : 'Add to nest'}
           </button>

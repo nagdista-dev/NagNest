@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
-import { Plus, Search, Link2 } from 'lucide-react'
-import { useSites } from '../context/SitesContext'
+import { useEffect, useMemo, useState } from 'react'
+import { Plus, Search, Link2, Globe, FolderKanban, Pin, Eye } from 'lucide-react'
+import { useSites } from '../context/useSites'
 import { SiteCard } from '../components/SiteCard'
 import { SiteModal } from '../components/SiteModal'
 import type { Site } from '../types'
@@ -16,6 +16,20 @@ export function Dashboard() {
   const [editing, setEditing] = useState<Site | null>(null)
   const [quickAddUrl, setQuickAddUrl] = useState('')
   const [quickUrl, setQuickUrl] = useState('')
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'n' && !e.ctrlKey && !e.metaKey) {
+        const target = e.target as HTMLElement
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
+        setEditing(null)
+        setQuickAddUrl('')
+        setModalOpen(true)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -40,6 +54,14 @@ export function Dashboard() {
 
   const activeCategory = categories.find((c) => c.id === categoryFilter)
   const totalVisits = sites.reduce((acc, s) => acc + s.visits, 0)
+  const pinnedCount = sites.filter((s) => s.pinned).length
+
+  const stats = [
+    { label: 'Saved sites', value: sites.length, icon: Globe },
+    { label: 'Categories', value: categories.length, icon: FolderKanban },
+    { label: 'Pinned', value: pinnedCount, icon: Pin },
+    { label: 'Total visits', value: totalVisits, icon: Eye },
+  ]
 
   const openAdd = () => {
     setEditing(null)
@@ -59,16 +81,18 @@ export function Dashboard() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="relative overflow-hidden rounded-3xl bg-slate-900 px-6 py-8 sm:px-8">
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-navy-deep via-navy to-teal-700 shadow-lg">
         <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-teal-500/20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-32 -left-16 h-64 w-64 rounded-full bg-amber-400/10 blur-3xl" />
-        <div className="relative flex flex-col gap-5">
+        <div className="pointer-events-none absolute -bottom-32 -left-16 h-64 w-64 rounded-full bg-gold/10 blur-3xl" />
+        <div className="relative flex flex-col gap-5 px-6 py-8 sm:px-8">
           <div>
-            <h2 className="text-xl font-bold text-white sm:text-2xl">
+            <h2 className="font-heading text-xl font-bold text-white sm:text-2xl">
               Welcome back to your nest
             </h2>
-            <p className="mt-1 text-sm text-slate-400">
-              {sites.length} saved sites · {totalVisits} visits recorded
+            <p className="mt-1 text-sm text-slate-300">
+              {sites.length} saved sites · {totalVisits} visits recorded · press{' '}
+              <kbd className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-xs text-amber-400">N</kbd>{' '}
+              to add quickly
             </p>
           </div>
 
@@ -82,7 +106,7 @@ export function Dashboard() {
             <div className="relative flex-1">
               <Link2
                 size={15}
-                className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-slate-500"
+                className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-slate-400"
               />
               <input
                 type="text"
@@ -102,6 +126,23 @@ export function Dashboard() {
             </button>
           </form>
         </div>
+      </section>
+
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {stats.map((s) => (
+          <div
+            key={s.label}
+            className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3.5 shadow-sm ring-1 ring-slate-200"
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-600/10 text-teal-600">
+              <s.icon size={16} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-lg leading-tight font-bold text-slate-900">{s.value}</p>
+              <p className="truncate text-xs text-slate-500">{s.label}</p>
+            </div>
+          </div>
+        ))}
       </section>
 
       <section className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -130,7 +171,7 @@ export function Dashboard() {
           </select>
           <button
             onClick={openAdd}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-teal-600 px-3.5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-teal-700"
           >
             <Plus size={15} />
             New
@@ -143,7 +184,7 @@ export function Dashboard() {
           onClick={() => setCategoryFilter('all')}
           className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
             categoryFilter === 'all'
-              ? 'bg-slate-900 text-white'
+              ? 'bg-teal-600 text-white'
               : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
           }`}
         >
@@ -157,7 +198,9 @@ export function Dashboard() {
               key={c.id}
               onClick={() => setCategoryFilter(active ? 'all' : c.id)}
               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                active ? 'text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
+                active
+                  ? 'text-white'
+                  : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
               }`}
               style={active ? { backgroundColor: c.color } : undefined}
             >
@@ -174,23 +217,29 @@ export function Dashboard() {
       {filtered.length > 0 ? (
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((site) => (
-            <SiteCard key={site.id} site={site} onEdit={(s) => {
-              setEditing(s)
-              setModalOpen(true)
-            }} />
+            <SiteCard
+              key={site.id}
+              site={site}
+              onEdit={(s) => {
+                setEditing(s)
+                setModalOpen(true)
+              }}
+            />
           ))}
         </section>
       ) : (
-        <section className="flex flex-col items-center gap-3 rounded-3xl border-2 border-dashed border-slate-200 bg-white/60 px-6 py-16 text-center">
+        <section className="flex flex-col items-center gap-3 rounded-3xl border-2 border-dashed border-slate-300 bg-white/60 px-6 py-16 text-center">
           {sites.length === 0 ? (
             <>
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-600/10 text-teal-600">
                 <Link2 size={24} />
               </div>
-              <h3 className="text-base font-semibold text-slate-900">Your nest is empty</h3>
+              <h3 className="font-heading text-base font-semibold text-slate-900">
+                Your nest is empty
+              </h3>
               <p className="max-w-sm text-sm text-slate-500">
                 Every time you read about AI on a site you like, paste its link above —
-                LinkNest keeps them all in one dashboard.
+                NagNest keeps them all in one dashboard.
               </p>
               <button
                 onClick={openAdd}
@@ -205,7 +254,9 @@ export function Dashboard() {
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-900/5 text-slate-400">
                 <Search size={24} />
               </div>
-              <h3 className="text-base font-semibold text-slate-900">No matches found</h3>
+              <h3 className="font-heading text-base font-semibold text-slate-900">
+                No matches found
+              </h3>
               <p className="max-w-sm text-sm text-slate-500">
                 {categoryFilter !== 'all'
                   ? `Nothing in "${activeCategory?.name ?? ''}" matches "${query}".`

@@ -19,7 +19,7 @@ import {
   UserPlus,
   Check,
 } from 'lucide-react'
-import { useSites } from '../context/SitesContext'
+import { useSites } from '../context/useSites'
 import {
   cacheFeed,
   fetchFeedItems,
@@ -76,6 +76,7 @@ function CircleAvatar({
       src={sources[failed]}
       alt=""
       loading="lazy"
+      referrerPolicy="no-referrer"
       onError={() => setFailed((f) => f + 1)}
       className={`shrink-0 bg-white object-cover ring-1 ring-slate-200 ${rounded}`}
       style={{ width: size, height: size }}
@@ -285,7 +286,7 @@ export function Feed() {
 
       {/* ── Center feed column ───────────────────────────────── */}
       <div className="min-w-0 flex-1 sm:max-w-[620px]">
-        <div className="sticky top-16 z-30 -mx-4 flex items-center justify-between border-b border-slate-200 bg-slate-100/95 px-4 py-3 backdrop-blur sm:-mx-0 sm:rounded-t-2xl sm:border-x sm:border-t sm:bg-white/95">
+        <div className="sticky top-16 z-30 -mx-4 flex items-center justify-between border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:-mx-0 sm:rounded-t-2xl sm:border-x sm:border-t">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-extrabold text-slate-900">Latest News</h2>
             <Sparkles size={18} className="text-amber-500" />

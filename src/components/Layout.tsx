@@ -10,37 +10,59 @@ const navItems = [
   { to: '/backup', label: 'Backup', icon: DatabaseBackup },
 ]
 
+function BrandMark() {
+  return (
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-navy-deep ring-1 ring-white/10">
+      <svg viewBox="0 0 100 100" className="h-6 w-6">
+        <text
+          x="50"
+          y="68"
+          fontFamily="'JetBrains Mono',monospace"
+          fontSize="30"
+          fill="#f59e0b"
+          textAnchor="middle"
+        >
+          {'{'}
+        </text>
+        <text
+          x="56"
+          y="68"
+          fontFamily="'Poppins',sans-serif"
+          fontSize="40"
+          fontWeight="700"
+          fill="#0d9488"
+          textAnchor="middle"
+        >
+          N
+        </text>
+        <text
+          x="62"
+          y="68"
+          fontFamily="'JetBrains Mono',monospace"
+          fontSize="30"
+          fill="#f59e0b"
+          textAnchor="middle"
+        >
+          {'}'}
+        </text>
+      </svg>
+    </div>
+  )
+}
+
 export function Layout() {
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/80 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-slate-800 bg-navy shadow-sm">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
           <a href="#/" className="flex items-center gap-2.5" title="Go to Dashboard">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 shadow-sm">
-              <svg viewBox="0 0 64 64" className="h-5 w-5">
-                <path
-                  d="M26 42l-4 4a6.5 6.5 0 0 1-9.2-9.2L20 29.6A6.5 6.5 0 0 1 29.2 29l.5.5"
-                  stroke="#0d9488"
-                  strokeWidth="5"
-                  strokeLinecap="round"
-                  fill="none"
-                />
-                <path
-                  d="M38 22l4-4a6.5 6.5 0 0 1 9.2 9.2L44 34.4A6.5 6.5 0 0 1 34.8 35l-.5-.5"
-                  stroke="#0d9488"
-                  strokeWidth="5"
-                  strokeLinecap="round"
-                  fill="none"
-                />
-                <circle cx="32" cy="32" r="5" fill="#f59e0b" />
-              </svg>
-            </div>
+            <BrandMark />
             <div>
-              <h1 className="text-sm leading-tight font-bold tracking-tight text-slate-900">
-                LinkNest
+              <h1 className="font-heading text-sm leading-tight font-bold tracking-widest text-white uppercase">
+                NagNest
               </h1>
               <p className="text-[11px] leading-tight text-slate-400">
-                All your reading links in one place
+                Keep Learning, Keep Building
               </p>
             </div>
           </a>
@@ -54,8 +76,8 @@ export function Layout() {
                 className={({ isActive }) =>
                   `flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition ${
                     isActive
-                      ? 'bg-teal-600/10 text-teal-700'
-                      : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
+                      ? 'bg-white/10 text-teal-400'
+                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
                   }`
                 }
               >

@@ -2,6 +2,13 @@
 
 @theme {
   --font-sans: "Inter", "Tajawal", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Poppins", "Tajawal", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-navy: #0f172a;
+  --color-navy-deep: #0b1120;
+  --color-ivory: #f5ece4;
+  --color-gold: #f59e0b;
 }
 
 html {
@@ -9,11 +16,20 @@ html {
 }
 
 body {
-  @apply bg-slate-100 text-slate-800 antialiased;
+  @apply bg-ivory text-slate-800 antialiased;
 }
 
 ::selection {
   @apply bg-teal-600 text-white;
+}
+
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid #d97706;
+  outline-offset: 2px;
 }
 
 @keyframes ticker-scroll {

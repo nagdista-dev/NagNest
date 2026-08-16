@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Radio, RefreshCw } from 'lucide-react'
-import { useSites } from '../context/SitesContext'
+import { useSites } from '../context/useSites'
 import {
   cacheTicker,
   fetchTickerItems,

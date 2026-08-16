@@ -60,7 +60,7 @@ export function isTwitterDomain(hostname: string): boolean {
 export function extractTwitterUsername(url: string): string | null {
   try {
     const path = new URL(url).pathname.replace(/^\/+/, '').replace(/\/+$/, '')
-    const segment = path.split('/')[0]
+    const segment = path.split('/')[0].replace(/^@/, '')
     if (!segment || TWITTER_NON_USER_SEGMENTS.has(segment.toLowerCase())) return null
     if (!/^[A-Za-z0-9_]{1,15}$/.test(segment)) return null
     return segment
