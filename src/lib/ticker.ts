@@ -37,10 +37,10 @@ const RAW_PROXIES = [
   'https://api.codetabs.com/v1/proxy?quest=',
 ]
 const CONCURRENCY = 4
-const SITE_BUDGET_MS = 12000
+const SITE_BUDGET_MS = 20000
 const REQUEST_TIMEOUT_MS = 8000
-const STAGGER_MS = 250
-const SERVER_TIMEOUT_MS = 5000
+const STAGGER_MS = 100
+const SERVER_TIMEOUT_MS = 30000
 
 const TWITTER_FEED_SOURCES = [
   'https://xcancel.com/{user}/rss',

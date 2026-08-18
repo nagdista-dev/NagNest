@@ -310,9 +310,19 @@ const KNOWN_FEEDS = {
   'ahram.org.eg': 'https://news.google.com/rss/search?q=site:ahram.org.eg&hl=ar&gl=EG&ceid=EG:ar',
 }
 
+// Public Nitter instances + RSSHub alternatives (ordered by reliability)
 const TWITTER_FEED_SOURCES = [
   (u) => `https://xcancel.com/${u}/rss`,
+  (u) => `https://nitter.privacydev.net/${u}/rss`,
+  (u) => `https://nitter.poast.org/${u}/rss`,
+  (u) => `https://nitter.esmailelbob.xyz/${u}/rss`,
+  (u) => `https://nitter.tiekoetter.com/${u}/rss`,
+  (u) => `https://nitter.fdn.fr/${u}/rss`,
   (u) => `https://nitter.net/${u}/rss`,
+  (u) => `https://rsshub.app/twitter/user/${u}`,
+  (u) => `https://rsshub.rssforever.com/twitter/user/${u}`,
+  (u) => `https://hub.slarker.me/twitter/user/${u}`,
+  (u) => `https://rsshub.fly.dev/twitter/user/${u}`,
 ]
 
 function toTwitterUrl(raw) {
@@ -544,19 +554,22 @@ async function fetchGoogleNewsFeed(domain, title, perSite) {
 }
 
 async function fetchTwitterFromGoogle(user, source, perSite) {
-  try {
-    const gnewsUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(`site:x.com/${user}`)}&hl=en-US&gl=US&ceid=US:en`
-    const items = await fetchFeed(gnewsUrl, perSite, source || `@${user}`, 'x.com', user)
-    if (items.length) return items
-  } catch {
-    // fallback to handle query
-  }
-  try {
-    const gnewsUrl2 = `https://news.google.com/rss/search?q=${encodeURIComponent(`"@${user}" site:x.com`)}&hl=en-US&gl=US&ceid=US:en`
-    const items = await fetchFeed(gnewsUrl2, perSite, source || `@${user}`, 'x.com', user)
-    if (items.length) return items
-  } catch {
-    // ignore
+  const displaySource = source || `@${user}`
+  const queries = [
+    `site:x.com/${user}`,
+    `site:twitter.com/${user}`,
+    `"@${user}" site:x.com`,
+    `from:${user} site:x.com`,
+    `twitter.com/${user}`,
+  ]
+  for (const q of queries) {
+    try {
+      const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`
+      const items = await fetchFeed(url, perSite, displaySource, 'x.com', user)
+      if (items.length) return items
+    } catch {
+      // try next query
+    }
   }
   return []
 }
@@ -566,28 +579,25 @@ async function fetchForSite(site, perSite) {
     const user = extractUser(site.url)
     if (!user) return []
 
-    // 1. Direct bridges (if active)
+    // Try each Nitter/RSSHub instance directly
     for (const tpl of TWITTER_FEED_SOURCES) {
       try {
-        const items = await fetchFeed(tpl(user), perSite, site.title, site.domain, user)
+        const feedUrl = tpl(user)
+        const items = await fetchFeed(feedUrl, perSite, site.title || `@${user}`, 'x.com', user)
         if (items.length) return items
       } catch {}
     }
 
-    // 2. RSS2JSON bridges
-    for (const feed of [
-      `https://xcancel.com/${user}/rss`,
-      `https://nitter.net/${user}/rss`,
-      `https://rsshub.app/twitter/user/${user}`,
-      `https://twiiit.com/${user}/rss`,
-    ]) {
+    // Try all Nitter/RSSHub feeds via rss2json (bypasses CORS & IP blocks)
+    for (const tpl of TWITTER_FEED_SOURCES) {
       try {
-        const items = await fetchViaRss2Json(feed, perSite, site.title, site.domain, user)
+        const feedUrl = tpl(user)
+        const items = await fetchViaRss2Json(feedUrl, perSite, site.title || `@${user}`, 'x.com', user)
         if (items.length) return items
       } catch {}
     }
 
-    // 3. Real-time Google News Twitter indexing
+    // Google News Twitter indexing fallback (most reliable when Nitter is down)
     const googleTweets = await fetchTwitterFromGoogle(user, site.title, perSite)
     if (googleTweets.length) return googleTweets
 

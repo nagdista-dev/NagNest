@@ -12,6 +12,7 @@ import {
   MessageCircle,
   MessageSquare,
   Newspaper,
+  RefreshCw,
   Repeat2,
   X,
 } from 'lucide-react'
@@ -261,6 +262,7 @@ export function Feed() {
   const { sites, notify } = useSites()
   const [items, setItems] = useState<FeedItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [liked, setLiked] = useState<Set<string>>(() => {
     try {
       return new Set(JSON.parse(localStorage.getItem('nagnest:feed:liked') ?? '[]'))
@@ -282,6 +284,7 @@ export function Feed() {
   }, [])
 
   const refresh = useCallback(async () => {
+    setRefreshing(true)
     try {
       const fresh = await fetchFeedItems(sites)
       if (!mounted.current) return
@@ -289,6 +292,7 @@ export function Feed() {
       cacheFeed(fresh)
     } finally {
       if (mounted.current) {
+        setRefreshing(false)
         setLoading(false)
       }
     }
@@ -356,8 +360,25 @@ export function Feed() {
     })
   }
 
+  const manualRefresh = () => {
+    void refresh()
+    notify('Feed refreshed')
+  }
+
   return (
     <div className="mx-auto w-full max-w-2xl px-3 sm:px-4 pt-3 pb-12">
+      {/* ── Refresh Button ── */}
+      <div className="mb-3 flex justify-end">
+        <button
+          onClick={manualRefresh}
+          disabled={refreshing || loading}
+          className="flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2 text-xs font-extrabold text-white shadow-sm transition hover:bg-teal-600 active:scale-[0.98] disabled:opacity-50"
+        >
+          <RefreshCw size={14} className={refreshing ? 'animate-spin text-teal-300' : ''} />
+          {refreshing ? 'Refreshing...' : 'Refresh Feed'}
+        </button>
+      </div>
+
       {/* ── Pure Feed Timeline ── */}
       <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
         {loading && items.length === 0 ? (
