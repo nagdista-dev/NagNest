@@ -280,8 +280,11 @@ const KNOWN_FEEDS = {
   'nytimes.com': 'https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml',
   'theguardian.com': 'https://www.theguardian.com/technology/rss',
   'cnbc.com': 'https://www.cnbc.com/id/10000664/device/rss/rss.html',
-  'bbc.com': 'https://feeds.bbci.co.uk/news/technology/rss.xml',
-  'bbc.co.uk': 'https://feeds.bbci.co.uk/news/technology/rss.xml',
+  'bbc.com': 'https://feeds.bbci.co.uk/news/rss.xml',
+  'bbc.co.uk': 'https://feeds.bbci.co.uk/news/rss.xml',
+  'aljazeera.net': 'https://aljazeera.net/feed',
+  'edition.cnn.com': 'https://edition.cnn.com/rss',
+  'cnn.com': 'https://edition.cnn.com/rss',
   'npr.org': 'https://feeds.npr.org/1001/rss.xml',
   'medium.com': 'https://medium.com/feed/',
   'semiengineering.com': 'https://semiengineering.com/feed/',
@@ -296,27 +299,52 @@ const KNOWN_FEEDS = {
   'nature.com': 'https://www.nature.com/subjects/machine-learning.rss',
   'zdnet.com': 'https://www.zdnet.com/topic/artificial-intelligence/rss.xml',
   'forbes.com': 'https://www.forbes.com/innovation/feed2',
-  'reuters.com': 'https://feeds.reuters.com/reuters/technologyNews',
-  'bloomberg.com': 'https://feeds.bloomberg.com/technology/news.rss',
+  'reuters.com': 'https://news.google.com/rss/search?q=site:reuters.com',
+  'bloomberg.com': 'https://news.google.com/rss/search?q=site:bloomberg.com',
   'hackernoon.com': 'https://hackernoon.com/feed',
   'towardsdatascience.com': 'https://towardsdatascience.com/feed',
+  'youm7.com': 'https://news.google.com/rss/search?q=site:youm7.com&hl=ar&gl=EG&ceid=EG:ar',
+  'almasryalyoum.com': 'https://news.google.com/rss/search?q=site:almasryalyoum.com&hl=ar&gl=EG&ceid=EG:ar',
+  'shorouknews.com': 'https://news.google.com/rss/search?q=site:shorouknews.com&hl=ar&gl=EG&ceid=EG:ar',
+  'masrawy.com': 'https://news.google.com/rss/search?q=site:masrawy.com&hl=ar&gl=EG&ceid=EG:ar',
+  'ahram.org.eg': 'https://news.google.com/rss/search?q=site:ahram.org.eg&hl=ar&gl=EG&ceid=EG:ar',
 }
 
 const TWITTER_FEED_SOURCES = [
+  (u) => `https://xcancel.com/${u}/rss`,
   (u) => `https://nitter.net/${u}/rss`,
 ]
+
+function toTwitterUrl(raw) {
+  if (!raw) return raw
+  return String(raw)
+    .replace(/(?:https?:\/\/)?(?:www\.)?nitter(?:\.[a-z]+)\/(\w+)\/status\/(\d+)/i, 'https://x.com/$1/status/$2')
+    .replace(/(?:https?:\/\/)?(?:www\.)?xcancel\.com\/(\w+)\/status\/(\d+)/i, 'https://x.com/$1/status/$2')
+    .replace(/(?:https?:\/\/)?(?:www\.)?twitter\.com\//i, 'https://x.com/')
+}
+
+function isArabic(text) {
+  return /[\u0600-\u06FF]/.test(String(text || ''))
+}
 
 function feedCandidates(origin, domain) {
   const known = KNOWN_FEEDS[domain]
   if (known) return [known]
-  return [`${origin}/feed`, `${origin}/rss`]
+  return [
+    `${origin}/feed`,
+    `${origin}/rss`,
+    `${origin}/feed/`,
+    `${origin}/rss.xml`,
+    `${origin}/feeds/rss`,
+    `${origin}/atom.xml`,
+  ]
 }
 
 const BROWSER_HEADERS = {
   'user-agent':
     'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
   accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,*/*;q=0.8',
-  'accept-language': 'en-US,en;q=0.9',
+  'accept-language': 'en-US,en;q=0.9,ar;q=0.8',
 }
 
 async function fetchText(url) {
@@ -328,11 +356,31 @@ async function fetchText(url) {
   return res.text()
 }
 
+async function discoverRssFeed(siteUrl) {
+  try {
+    const html = await fetchText(siteUrl)
+    const linkMatches = html.matchAll(/<link[^>]+rel=["']alternate["'][^>]+>/gi)
+    for (const match of linkMatches) {
+      const tag = match[0]
+      if (/type=["']application\/(rss\+xml|atom\+xml|xml)["']/i.test(tag)) {
+        const hrefMatch = tag.match(/href=["']([^"']+)["']/i)
+        if (hrefMatch?.[1]) {
+          return new URL(hrefMatch[1], siteUrl).href
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return null
+}
+
 // rss2json fetches the feed server-side on their infra — reliable for
 // sources that fingerprint-block direct fetches (nitter, twiiit, rsshub).
 async function fetchViaRss2Json(feed, perSite, source, domain, username) {
   const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed)}`, {
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    headers: BROWSER_HEADERS,
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   const json = await res.json()
@@ -345,8 +393,12 @@ async function fetchViaRss2Json(feed, perSite, source, domain, username) {
       const desc = `${it.description ?? ''}${it.content ?? ''}`
       const imgMatch = desc.match(/<img[^>]+src=["']([^"']+)["']/i)
       const thumb = typeof it.thumbnail === 'string' ? it.thumbnail : null
+      let title = String(it.title).trim()
+      if (username) {
+        title = title.replace(/\s*-\s*x\.com$/i, '').replace(/\s*-\s*Twitter$/i, '').trim()
+      }
       return {
-        title: String(it.title),
+        title,
         url: username ? toTwitterUrl(String(it.link)) : String(it.link),
         source,
         domain,
@@ -397,7 +449,7 @@ function parseXml(xml) {
 
 function normalizeTwitterImage(src) {
   if (!src) return undefined
-  if (typeof src === 'string' && src.includes('nitter.net/pic/')) {
+  if (typeof src === 'string' && (src.includes('nitter.net/pic/') || src.includes('xcancel.com/pic/'))) {
     try {
       const decoded = decodeURIComponent(src).replace(/https?:\/\/[^/]+\/pic\//, '')
       return `https://pbs.twimg.com/${decoded}`
@@ -433,10 +485,12 @@ function parseTwitterItem(item, user) {
     title = replyMatch[2]?.trim() || title
   }
 
-  // Clean trailing pic.twitter.com or raw [image] placeholder texts
+  // Clean trailing pic.twitter.com or raw [image] placeholder texts or suffix
   title = title
     .replace(/\[\s*image\s*\]/gi, '')
     .replace(/(?:https?:\/\/)?pic\.twitter\.com\/[A-Za-z0-9_]+/gi, '')
+    .replace(/\s*-\s*x\.com$/i, '')
+    .replace(/\s*-\s*Twitter$/i, '')
     .trim()
 
   return {
@@ -454,39 +508,75 @@ function parseTwitterItem(item, user) {
 function extractUser(url) {
   try {
     const path = new URL(url).pathname.replace(/^\/+/, '').replace(/\/+$/, '')
-    return path.split('/')[0] ?? url
+    const segment = path.split('/')[0]?.replace(/^@/, '')
+    return segment ?? url
   } catch {
-    return url
+    return url.replace(/^@/, '')
   }
 }
 
 async function fetchFeed(url, perSite, source, domain, username) {
   const xml = await fetchText(url)
-  const items = parseXml(xml).slice(0, perSite).map((it) => ({
-    title: it.title,
-    url: username ? toTwitterUrl(it.url) : it.url,
-    source,
-    domain,
-    username,
-    publishedAt: it.pubDate ? Date.parse(it.pubDate) || undefined : undefined,
-    image: it.image,
-  }))
+  const items = parseXml(xml).slice(0, perSite).map((it) => {
+    let title = it.title
+    if (username) {
+      title = title.replace(/\s*-\s*x\.com$/i, '').replace(/\s*-\s*Twitter$/i, '').trim()
+    }
+    return {
+      title,
+      url: username ? toTwitterUrl(it.url) : it.url,
+      source,
+      domain,
+      username,
+      publishedAt: it.pubDate ? Date.parse(it.pubDate) || undefined : undefined,
+      image: it.image,
+    }
+  })
   return username ? items.map((it) => parseTwitterItem(it, username)) : items
+}
+
+async function fetchGoogleNewsFeed(domain, title, perSite) {
+  const arabic = isArabic(title || '') || /youm7|almasry|shorouk|ahram|masrawy|aljazeera|alarabiya|\.eg|\.sa|\.ae/i.test(domain)
+  const gnewsUrl = arabic
+    ? `https://news.google.com/rss/search?q=${encodeURIComponent(`site:${domain}`)}&hl=ar&gl=EG&ceid=EG:ar`
+    : `https://news.google.com/rss/search?q=${encodeURIComponent(`site:${domain}`)}&hl=en-US&gl=US&ceid=US:en`
+  return fetchFeed(gnewsUrl, perSite, title, domain)
+}
+
+async function fetchTwitterFromGoogle(user, source, perSite) {
+  try {
+    const gnewsUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(`site:x.com/${user}`)}&hl=en-US&gl=US&ceid=US:en`
+    const items = await fetchFeed(gnewsUrl, perSite, source || `@${user}`, 'x.com', user)
+    if (items.length) return items
+  } catch {
+    // fallback to handle query
+  }
+  try {
+    const gnewsUrl2 = `https://news.google.com/rss/search?q=${encodeURIComponent(`"@${user}" site:x.com`)}&hl=en-US&gl=US&ceid=US:en`
+    const items = await fetchFeed(gnewsUrl2, perSite, source || `@${user}`, 'x.com', user)
+    if (items.length) return items
+  } catch {
+    // ignore
+  }
+  return []
 }
 
 async function fetchForSite(site, perSite) {
   if (site.kind === 'twitter') {
     const user = extractUser(site.url)
     if (!user) return []
-    // direct nitter first (fast when it responds), then rss2json-based sources
+
+    // 1. Direct bridges (if active)
     for (const tpl of TWITTER_FEED_SOURCES) {
       try {
-        return await fetchFeed(tpl(user), perSite, site.title, site.domain, user)
-      } catch {
-        // next source
-      }
+        const items = await fetchFeed(tpl(user), perSite, site.title, site.domain, user)
+        if (items.length) return items
+      } catch {}
     }
+
+    // 2. RSS2JSON bridges
     for (const feed of [
+      `https://xcancel.com/${user}/rss`,
       `https://nitter.net/${user}/rss`,
       `https://rsshub.app/twitter/user/${user}`,
       `https://twiiit.com/${user}/rss`,
@@ -494,29 +584,57 @@ async function fetchForSite(site, perSite) {
       try {
         const items = await fetchViaRss2Json(feed, perSite, site.title, site.domain, user)
         if (items.length) return items
-      } catch {
-        // next source
-      }
+      } catch {}
     }
+
+    // 3. Real-time Google News Twitter indexing
+    const googleTweets = await fetchTwitterFromGoogle(user, site.title, perSite)
+    if (googleTweets.length) return googleTweets
+
     return []
   }
+
+  // 1. Check known feeds
+  const known = KNOWN_FEEDS[site.domain]
+  if (known) {
+    try {
+      const items = await fetchFeed(known, perSite, site.title, site.domain)
+      if (items.length) return items
+    } catch {}
+  }
+
+  // 2. Auto-discover feed link from site homepage HTML
+  try {
+    const discovered = await discoverRssFeed(site.url)
+    if (discovered && discovered !== known) {
+      const items = await fetchFeed(discovered, perSite, site.title, site.domain)
+      if (items.length) return items
+    }
+  } catch {}
+
+  // 3. Try standard feed candidates
   const origin = new URL(site.url).origin
   for (const feed of feedCandidates(origin, site.domain)) {
     try {
-      return await fetchFeed(feed, perSite, site.title, site.domain)
-    } catch {
-      // next candidate
-    }
+      const items = await fetchFeed(feed, perSite, site.title, site.domain)
+      if (items.length) return items
+    } catch {}
   }
-  // last resort for websites: rss2json (their infra may reach sites we can't)
+
+  // 4. Try rss2json proxy on standard candidates
   for (const feed of feedCandidates(origin, site.domain)) {
     try {
       const items = await fetchViaRss2Json(feed, perSite, site.title, site.domain)
       if (items.length) return items
-    } catch {
-      // give up on this site
-    }
+    } catch {}
   }
+
+  // 5. Google News RSS search (universal fallback for news websites, youm7, etc.)
+  try {
+    const gnewsItems = await fetchGoogleNewsFeed(site.domain, site.title, perSite)
+    if (gnewsItems.length) return gnewsItems
+  } catch {}
+
   return []
 }
 

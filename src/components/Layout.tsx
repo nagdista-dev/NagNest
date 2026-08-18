@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { Download, LayoutGrid, Newspaper, FolderKanban, DatabaseBackup, LogOut } from 'lucide-react'
 import { Toasts } from './Toasts'
-import { Ticker } from './Ticker'
 import { useAuth } from '../context/useAuth'
 
 interface BeforeInstallPromptEvent extends Event {
@@ -147,12 +146,12 @@ export function Layout() {
       </header>
 
       {/* Main Page Content */}
-      <main className="mx-auto w-full max-w-7xl flex-1 px-0 pt-0 pb-[calc(6.75rem+env(safe-area-inset-bottom))] sm:px-5 sm:pb-32 lg:px-6">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-0 pt-0 pb-20 sm:px-5 sm:pb-8 lg:px-6">
         <Outlet />
       </main>
 
       {/* Mobile Bottom Navigation Bar (Sleek Floating App Bar on small screens) */}
-      <nav className="fixed inset-x-3 bottom-[calc(3rem+env(safe-area-inset-bottom))] z-40 flex items-center justify-around rounded-2xl bg-slate-900/95 p-1.5 text-white shadow-xl backdrop-blur-md ring-1 ring-white/15 lg:hidden">
+      <nav className="fixed inset-x-3 bottom-3 z-40 flex items-center justify-around rounded-2xl bg-slate-900/95 p-1.5 text-white shadow-xl backdrop-blur-md ring-1 ring-white/15 lg:hidden">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
@@ -172,8 +171,6 @@ export function Layout() {
         ))}
       </nav>
 
-      {/* Live Ticker Bar */}
-      <Ticker />
       <Toasts />
     </div>
   )

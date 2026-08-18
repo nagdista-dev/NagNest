@@ -43,9 +43,10 @@ const STAGGER_MS = 250
 const SERVER_TIMEOUT_MS = 5000
 
 const TWITTER_FEED_SOURCES = [
+  'https://xcancel.com/{user}/rss',
+  'https://nitter.net/{user}/rss',
   'https://rsshub.app/twitter/user/{user}',
   'https://twiiit.com/{user}/rss',
-  'https://nitter.net/{user}/rss',
 ]
 
 const KNOWN_FEEDS: Record<string, string> = {
@@ -61,8 +62,11 @@ const KNOWN_FEEDS: Record<string, string> = {
   'nytimes.com': 'https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml',
   'theguardian.com': 'https://www.theguardian.com/technology/rss',
   'cnbc.com': 'https://www.cnbc.com/id/10000664/device/rss/rss.html',
-  'bbc.com': 'https://feeds.bbci.co.uk/news/technology/rss.xml',
-  'bbc.co.uk': 'https://feeds.bbci.co.uk/news/technology/rss.xml',
+  'bbc.com': 'https://feeds.bbci.co.uk/news/rss.xml',
+  'bbc.co.uk': 'https://feeds.bbci.co.uk/news/rss.xml',
+  'aljazeera.net': 'https://aljazeera.net/feed',
+  'edition.cnn.com': 'https://edition.cnn.com/rss',
+  'cnn.com': 'https://edition.cnn.com/rss',
   'npr.org': 'https://feeds.npr.org/1001/rss.xml',
   'medium.com': 'https://medium.com/feed/',
   'semiengineering.com': 'https://semiengineering.com/feed/',
@@ -72,6 +76,11 @@ const KNOWN_FEEDS: Record<string, string> = {
   'artificialintelligence-news.com': 'https://artificialintelligence-news.com/feed/',
   'aitrends.com': 'https://aitrends.com/feed/',
   'topai.tools': 'https://topai.tools/feed',
+  'youm7.com': 'https://news.google.com/rss/search?q=site:youm7.com&hl=ar&gl=EG&ceid=EG:ar',
+  'almasryalyoum.com': 'https://news.google.com/rss/search?q=site:almasryalyoum.com&hl=ar&gl=EG&ceid=EG:ar',
+  'shorouknews.com': 'https://news.google.com/rss/search?q=site:shorouknews.com&hl=ar&gl=EG&ceid=EG:ar',
+  'masrawy.com': 'https://news.google.com/rss/search?q=site:masrawy.com&hl=ar&gl=EG&ceid=EG:ar',
+  'ahram.org.eg': 'https://news.google.com/rss/search?q=site:ahram.org.eg&hl=ar&gl=EG&ceid=EG:ar',
 }
 
 export function isItem(it: unknown): it is TickerItem {
@@ -251,10 +260,17 @@ async function fetchViaRss2Json(
   }
 }
 
+function isArabic(text: string): boolean {
+  return /[\u0600-\u06FF]/.test(text)
+}
+
 async function fetchGoogleNews(site: Site, perSite: number): Promise<TickerItem[]> {
-  const feed = `https://news.google.com/rss/search?q=${encodeURIComponent(
-    `site:${site.domain}`,
-  )}&hl=en-US&gl=US&ceid=US:en`
+  const arabic =
+    isArabic(site.title || '') ||
+    /youm7|almasry|shorouk|ahram|masrawy|aljazeera|alarabiya|\.eg|\.sa|\.ae/i.test(site.domain)
+  const feed = arabic
+    ? `https://news.google.com/rss/search?q=${encodeURIComponent(`site:${site.domain}`)}&hl=ar&gl=EG&ceid=EG:ar`
+    : `https://news.google.com/rss/search?q=${encodeURIComponent(`site:${site.domain}`)}&hl=en-US&gl=US&ceid=US:en`
   for (const proxy of RAW_PROXIES) {
     try {
       const xml = await fetchText(proxy + encodeURIComponent(feed))
@@ -303,21 +319,64 @@ async function fetchTwitterForSite(site: Site, perSite: number): Promise<TickerI
       return items.map((it) => parseTwitterItem({ ...it, url: toTwitterUrl(it.url) }, user))
     }
   }
+  // Google News Twitter search fallback
+  const gnewsFeed = `https://news.google.com/rss/search?q=${encodeURIComponent(`site:x.com/${user}`)}&hl=en-US&gl=US&ceid=US:en`
+  for (const proxy of RAW_PROXIES) {
+    try {
+      const xml = await fetchText(proxy + encodeURIComponent(gnewsFeed))
+      if (!/<item[\s>]/i.test(xml)) continue
+      const items = toItems(parseRssXml(xml), site.title || `@${user}`, 'x.com', perSite, user)
+      if (items.length) {
+        return items.map((it) => parseTwitterItem(it, user))
+      }
+    } catch {
+      // try next proxy
+    }
+  }
   return []
 }
 
 function parseTwitterItem(item: TickerItem, user: string): TickerItem {
-  const match = item.title.match(/^\s*RT\s+by\s+@([A-Za-z0-9_]+):\s*(.*)$/s)
-  const matchShort = match ?? item.title.match(/^\s*RT\s+@([A-Za-z0-9_]+):\s*(.*)$/s)
+  let title = item.title
+  let repost = false
+  let repostedBy: string | undefined = undefined
+  let originalAuthor: string | undefined = undefined
+  let reply = false
+  let replyTo: string | undefined = undefined
+
+  const match = title.match(/^\s*RT\s+by\s+@([A-Za-z0-9_]+):\s*(.*)$/s)
+  const matchShort = match ?? title.match(/^\s*RT\s+@([A-Za-z0-9_]+):\s*(.*)$/s)
   const final = matchShort ?? match
-  if (!final) return item
-  const original = extractTwitterUsername(item.url)
+  if (final) {
+    repost = true
+    repostedBy = user
+    title = final[2]?.trim() || title
+    const original = extractTwitterUsername(item.url)
+    originalAuthor = original ?? final[1]
+  }
+
+  const replyMatch = title.match(/^\s*(?:R\s+to|Replying\s+to|In\s+reply\s+to)\s+@([A-Za-z0-9_]+):\s*(.*)$/si)
+  if (replyMatch) {
+    reply = true
+    replyTo = replyMatch[1]
+    title = replyMatch[2]?.trim() || title
+  }
+
+  title = title
+    .replace(/\[\s*image\s*\]/gi, '')
+    .replace(/(?:https?:\/\/)?pic\.twitter\.com\/\S+/gi, '')
+    .replace(/\s*-\s*x\.com$/i, '')
+    .replace(/\s*-\s*Twitter$/i, '')
+    .trim()
+
   return {
     ...item,
-    title: final[2]?.trim() || item.title,
-    repost: true,
-    repostedBy: user,
-    originalAuthor: original ?? final[1],
+    title,
+    repost: repost || item.repost,
+    repostedBy: repostedBy || item.repostedBy,
+    originalAuthor: originalAuthor || item.originalAuthor,
+    reply: reply || item.reply,
+    replyTo: replyTo || item.replyTo,
   }
 }
 
