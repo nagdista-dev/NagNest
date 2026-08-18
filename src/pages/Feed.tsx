@@ -12,7 +12,6 @@ import {
   MessageCircle,
   MessageSquare,
   Newspaper,
-  RefreshCw,
   Repeat2,
   X,
 } from 'lucide-react'
@@ -262,7 +261,6 @@ export function Feed() {
   const { sites, notify } = useSites()
   const [items, setItems] = useState<FeedItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
   const [liked, setLiked] = useState<Set<string>>(() => {
     try {
       return new Set(JSON.parse(localStorage.getItem('nagnest:feed:liked') ?? '[]'))
@@ -284,7 +282,6 @@ export function Feed() {
   }, [])
 
   const refresh = useCallback(async () => {
-    setRefreshing(true)
     try {
       const fresh = await fetchFeedItems(sites)
       if (!mounted.current) return
@@ -292,7 +289,6 @@ export function Feed() {
       cacheFeed(fresh)
     } finally {
       if (mounted.current) {
-        setRefreshing(false)
         setLoading(false)
       }
     }
@@ -361,36 +357,8 @@ export function Feed() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-3 sm:px-4 pt-2 pb-10">
-      
-      {/* ── Sleek Minimalist Top Header ── */}
-      <div className="sticky top-16 z-30 mb-3 overflow-hidden rounded-3xl border border-slate-200/80 bg-white/95 px-4 py-3 sm:px-5 shadow-xs backdrop-blur-md flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-base font-black text-slate-900 sm:text-lg tracking-tight">
-              Feed
-            </h1>
-            <span className="inline-flex items-center gap-1 rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-extrabold text-teal-700 ring-1 ring-teal-200/80">
-              <span className="h-1.5 w-1.5 animate-ping rounded-full bg-teal-500" />
-              Live
-            </span>
-          </div>
-          <p className="text-[11px] font-semibold text-slate-400">
-            {items.length} latest updates from your {sites.length} source{sites.length === 1 ? '' : 's'}
-          </p>
-        </div>
-
-        <button
-          onClick={() => void refresh()}
-          disabled={refreshing || loading}
-          className="flex h-9 items-center gap-1.5 rounded-2xl bg-slate-900 px-3.5 text-xs font-extrabold text-white shadow-xs transition hover:bg-teal-600 disabled:opacity-50"
-        >
-          <RefreshCw size={13} className={refreshing ? 'animate-spin text-teal-300' : ''} />
-          <span>{refreshing ? 'Syncing...' : 'Sync'}</span>
-        </button>
-      </div>
-
-      {/* ── Feed Timeline ── */}
+    <div className="mx-auto w-full max-w-2xl px-3 sm:px-4 pt-3 pb-12">
+      {/* ── Pure Feed Timeline ── */}
       <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-sm">
         {loading && items.length === 0 ? (
           <div>

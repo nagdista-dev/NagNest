@@ -7,6 +7,9 @@ import {
   FolderKanban,
   Pin,
   Eye,
+  X,
+  SlidersHorizontal,
+  Sparkles,
 } from 'lucide-react'
 import { useSites } from '../context/useSites'
 import { SiteCard } from '../components/SiteCard'
@@ -24,8 +27,8 @@ export function Dashboard() {
   const [sort, setSort] = useState<SortKey>('recent')
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Site | null>(null)
-  const [quickAddUrl, setQuickAddUrl] = useState('')
   const [quickUrl, setQuickUrl] = useState('')
+  const [quickAddUrl, setQuickAddUrl] = useState('')
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -64,50 +67,50 @@ export function Dashboard() {
     return [...pinned.sort(sortFn), ...rest.sort(sortFn)]
   }, [sites, query, categoryFilter, typeFilter, sort])
 
-  const activeCategory = categories.find((c) => c.id === categoryFilter)
   const totalVisits = sites.reduce((acc, s) => acc + s.visits, 0)
   const pinnedCount = sites.filter((s) => s.pinned).length
   const twitterCount = sites.filter((s) => s.kind === 'twitter').length
 
   const stats = [
     {
-      label: 'Saved Sources',
+      label: 'Sources',
       value: sites.length,
       icon: Globe,
-      color: 'text-teal-400',
-      bg: 'bg-teal-500/10 ring-teal-500/20',
+      color: 'text-teal-600',
+      bg: 'bg-teal-50 ring-teal-200/70',
     },
     {
       label: 'Categories',
       value: categories.length,
       icon: FolderKanban,
-      color: 'text-indigo-400',
-      bg: 'bg-indigo-500/10 ring-indigo-500/20',
+      color: 'text-indigo-600',
+      bg: 'bg-indigo-50 ring-indigo-200/70',
     },
     {
       label: 'Pinned',
       value: pinnedCount,
       icon: Pin,
-      color: 'text-amber-400',
-      bg: 'bg-amber-500/10 ring-amber-500/20',
+      color: 'text-amber-600',
+      bg: 'bg-amber-50 ring-amber-200/70',
     },
     {
       label: 'Visits',
       value: totalVisits,
       icon: Eye,
-      color: 'text-emerald-400',
-      bg: 'bg-emerald-500/10 ring-emerald-500/20',
+      color: 'text-emerald-600',
+      bg: 'bg-emerald-50 ring-emerald-200/70',
     },
   ]
 
   const openAdd = () => {
     setEditing(null)
+    setQuickAddUrl('')
     setModalOpen(true)
   }
 
   const quickAdd = () => {
     if (!quickUrl.trim()) {
-      notify('Paste a link first', 'error')
+      notify('Paste a link or handle first', 'error')
       return
     }
     setQuickAddUrl(quickUrl.trim())
@@ -117,77 +120,100 @@ export function Dashboard() {
   }
 
   return (
-    <div className="flex flex-col gap-4 overflow-x-hidden px-3.5 pt-0 sm:gap-8 sm:px-0">
-      <section className="rounded-2xl bg-white p-3.5 shadow-sm ring-1 ring-slate-200/80 sm:p-5">
-        <div className="mb-3 flex items-end justify-between gap-3">
-          <div className="min-w-0">
-            <h2 className="font-heading text-lg font-extrabold text-slate-950 sm:text-2xl">
-              Home
-            </h2>
-            <p className="mt-0.5 text-xs font-medium text-slate-500 sm:text-sm">
-              {sites.length} saved source{sites.length === 1 ? '' : 's'}
+    <div className="flex flex-col gap-3.5 px-3 pt-2 pb-12 sm:gap-6 sm:px-4 max-w-7xl mx-auto w-full">
+      
+      {/* ── Top Header & Quick Add Hub ── */}
+      <section className="rounded-3xl bg-white p-4 sm:p-6 shadow-sm ring-1 ring-slate-200/80">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-black tracking-tight text-slate-900 sm:text-2xl">
+                Dashboard
+              </h1>
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-black text-white">
+                <Sparkles size={10} className="text-amber-400" />
+                {sites.length} Active
+              </span>
+            </div>
+            <p className="mt-0.5 text-xs font-semibold text-slate-400">
+              Manage your personal feed hub & monitored accounts
             </p>
           </div>
+          
           <button
             onClick={openAdd}
-            className="hidden items-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-teal-600 sm:inline-flex"
+            className="flex items-center gap-1.5 rounded-2xl bg-slate-900 px-3.5 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-teal-600 active:scale-[0.98]"
           >
-            <Plus size={14} />
-            New Source
+            <Plus size={15} />
+            <span>New Source</span>
           </button>
         </div>
-          <form
-            className="flex flex-col gap-2 sm:flex-row"
-            onSubmit={(e) => {
-              e.preventDefault()
-              quickAdd()
-            }}
+
+        {/* Quick Add Bar */}
+        <form
+          className="flex flex-col gap-2 sm:flex-row"
+          onSubmit={(e) => {
+            e.preventDefault()
+            quickAdd()
+          }}
+        >
+          <div className="relative flex-1">
+            <Link2
+              size={16}
+              className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-slate-400"
+            />
+            <input
+              type="text"
+              dir="ltr"
+              value={quickUrl}
+              onChange={(e) => setQuickUrl(e.target.value)}
+              placeholder="Paste any website URL or @TwitterHandle…"
+              className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50/80 pr-4 pl-10 text-xs sm:text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-100"
+            />
+            {quickUrl && (
+              <button
+                type="button"
+                onClick={() => setQuickUrl('')}
+                className="absolute top-1/2 right-3 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          <button
+            type="submit"
+            className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-teal-500 px-5 text-xs sm:text-sm font-black text-slate-950 shadow-md shadow-teal-500/20 transition hover:bg-teal-400 active:scale-[0.98]"
           >
-            <div className="relative flex-1">
-              <Link2
-                size={16}
-                className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-slate-400"
-              />
-              <input
-                type="text"
-                dir="ltr"
-                value={quickUrl}
-                onChange={(e) => setQuickUrl(e.target.value)}
-                placeholder="Paste a site or @handle"
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 pl-10 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-100 sm:rounded-2xl"
-              />
-            </div>
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-sm font-bold text-slate-950 shadow-lg shadow-teal-500/25 transition hover:bg-teal-400 active:scale-[0.98] sm:rounded-2xl"
-            >
-              <Plus size={16} className="stroke-[3]" />
-              Add Source
-            </button>
-          </form>
+            <Plus size={16} className="stroke-[3]" />
+            <span>Add to Nest</span>
+          </button>
+        </form>
       </section>
 
-      {/* ── Stats Metric Cards ─────────────────────────────────── */}
-      <section className="grid grid-cols-4 gap-2 rounded-2xl bg-white p-2 shadow-sm ring-1 ring-slate-200/80 sm:gap-3 sm:p-3">
+      {/* ── Metric Stats Cards (2 cols on mobile, 4 cols on desktop) ── */}
+      <section className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3.5">
         {stats.map((s) => (
           <div
             key={s.label}
-            className="flex min-w-0 flex-col gap-1 rounded-xl px-2.5 py-2 sm:flex-row sm:items-center sm:gap-3 sm:p-3"
+            className="flex items-center gap-3 rounded-2xl bg-white p-3 sm:p-4 shadow-xs ring-1 ring-slate-200/80 transition hover:shadow-sm"
           >
-            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1 sm:h-10 sm:w-10 ${s.bg} ${s.color}`}>
-              <s.icon size={16} />
+            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ${s.bg} ${s.color}`}>
+              <s.icon size={18} />
             </div>
             <div className="min-w-0">
-              <p className="text-base leading-tight font-extrabold text-slate-900 sm:text-xl">{s.value}</p>
-              <p className="truncate text-[10px] font-semibold text-slate-500 sm:text-xs">{s.label}</p>
+              <p className="text-lg font-black leading-tight text-slate-900 sm:text-xl">{s.value}</p>
+              <p className="truncate text-[11px] font-bold text-slate-400 uppercase tracking-wider">{s.label}</p>
             </div>
           </div>
         ))}
       </section>
 
-      {/* ── Filter & Search Toolbar ────────────────────────────── */}
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-col gap-2.5 rounded-2xl bg-white p-2.5 shadow-sm ring-1 ring-slate-200/80 sm:flex-row sm:items-center">
+      {/* ── Search, Type Filter & Sort Controls ── */}
+      <section className="rounded-3xl bg-white p-3 sm:p-4 shadow-xs ring-1 ring-slate-200/80 flex flex-col gap-3">
+        
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
+          
+          {/* Search bar */}
           <div className="relative flex-1">
             <Search
               size={16}
@@ -197,110 +223,114 @@ export function Dashboard() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search sources"
-              className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pr-4 pl-10 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 sm:shadow-sm"
+              placeholder="Search by title, domain, or notes…"
+              className="h-10 w-full rounded-2xl border border-slate-200 bg-slate-50/80 pr-9 pl-10 text-xs sm:text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-100"
             />
+            {query && (
+              <button
+                onClick={() => setQuery('')}
+                className="absolute top-1/2 right-3 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
 
-          {/* Quick Kind Switcher & Sort */}
-          <div className="grid grid-cols-[1fr_auto] items-center gap-2 sm:flex sm:flex-nowrap sm:justify-start">
-            <div className="flex min-w-0 items-center rounded-xl bg-slate-100 p-1 ring-1 ring-slate-200">
+          {/* Kind Switcher & Sort Toolbar */}
+          <div className="flex items-center justify-between gap-2 sm:justify-start">
+            
+            {/* Kind filter tabs */}
+            <div className="flex rounded-xl bg-slate-100 p-1 ring-1 ring-slate-200/80">
               <button
                 onClick={() => setTypeFilter('all')}
-                className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-bold transition sm:flex-none sm:px-2.5 sm:py-1 ${
+                className={`rounded-lg px-2.5 py-1 text-xs font-black transition ${
                   typeFilter === 'all'
                     ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
-                All
+                All ({sites.length})
               </button>
               <button
                 onClick={() => setTypeFilter('website')}
-                className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs font-bold transition sm:flex-none sm:px-2.5 sm:py-1 ${
+                className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-black transition ${
                   typeFilter === 'website'
                     ? 'bg-white text-teal-700 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
-                <Globe size={11} />
-                Web
+                <Globe size={12} />
+                <span>Web</span>
               </button>
               <button
                 onClick={() => setTypeFilter('twitter')}
-                className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs font-bold transition sm:flex-none sm:py-1 ${
+                className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-black transition ${
                   typeFilter === 'twitter'
                     ? 'bg-white text-sky-600 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
-                <span className="font-bold text-[10px]">X</span>
-                ({twitterCount})
+                <span className="font-mono text-xs">𝕏</span>
+                <span>({twitterCount})</span>
               </button>
             </div>
 
-            <div className="flex shrink-0 items-center gap-1.5">
+            {/* Sort selection */}
+            <div className="flex items-center gap-1">
+              <SlidersHorizontal size={13} className="text-slate-400 hidden sm:inline" />
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value as SortKey)}
-                className="max-w-24 rounded-xl border border-slate-200 bg-white px-2 py-2 text-xs font-bold text-slate-700 shadow-xs outline-none focus:border-teal-500 sm:max-w-none sm:px-2.5"
+                className="h-9 rounded-xl border border-slate-200 bg-slate-50/80 px-2.5 text-xs font-bold text-slate-700 outline-none transition focus:border-teal-500 focus:bg-white"
               >
-                <option value="recent">Newest</option>
+                <option value="recent">Newest First</option>
                 <option value="visits">Most Visited</option>
-                <option value="alpha">A→Z</option>
+                <option value="alpha">Alphabetical (A→Z)</option>
               </select>
-
-              <button
-                onClick={openAdd}
-                className="inline-flex items-center gap-1 rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-teal-600 sm:hidden"
-              >
-                <Plus size={14} className="stroke-[3]" />
-                New
-              </button>
             </div>
           </div>
         </div>
 
-        {/* Category Filter Pills */}
-        <div className="-mx-3.5 flex items-center gap-1.5 overflow-x-auto px-3.5 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+        {/* Categories horizontal scroll pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pt-1 pb-0.5 border-t border-slate-100">
           <button
             onClick={() => setCategoryFilter('all')}
-            className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold transition ${
+            className={`shrink-0 rounded-full px-3 py-1 text-xs font-extrabold transition ${
               categoryFilter === 'all'
                 ? 'bg-slate-900 text-white shadow-xs'
-                : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            All <span className="opacity-70">({sites.length})</span>
+            All Categories
           </button>
           {categories.map((c) => {
-            const count = sites.filter((s) => s.categoryId === c.id).length
             const active = categoryFilter === c.id
+            const count = sites.filter((s) => s.categoryId === c.id).length
             return (
               <button
                 key={c.id}
                 onClick={() => setCategoryFilter(active ? 'all' : c.id)}
-                className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition ${
+                className={`shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-extrabold transition ${
                   active
-                    ? 'text-white shadow-xs'
-                    : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
-                style={active ? { backgroundColor: c.color } : undefined}
               >
                 <span
-                  className="h-1.5 w-1.5 rounded-full"
-                  style={{ backgroundColor: active ? 'white' : c.color }}
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: c.color }}
                 />
-                {c.name} <span className={active ? 'opacity-80' : 'opacity-50'}>({count})</span>
+                <span>{c.name}</span>
+                <span className="opacity-60 text-[10px]">({count})</span>
               </button>
             )
           })}
         </div>
       </section>
 
-      {/* ── Sites Grid ─────────────────────────────────────────── */}
+      {/* ── Sites Grid ── */}
       {filtered.length > 0 ? (
-        <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3.5 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-4">
           {filtered.map((site) => (
             <SiteCard
               key={site.id}
@@ -311,57 +341,26 @@ export function Dashboard() {
               }}
             />
           ))}
-        </section>
+        </div>
       ) : (
-        <section className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-slate-300 bg-white/60 px-5 py-12 text-center shadow-inner sm:rounded-3xl sm:py-14">
-          {sites.length === 0 ? (
-            <>
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-600 ring-1 ring-teal-500/20">
-                <Link2 size={24} />
-              </div>
-              <h3 className="font-heading text-base sm:text-lg font-bold text-slate-900">
-                Your nest is empty
-              </h3>
-              <p className="max-w-md text-xs sm:text-sm text-slate-500 leading-relaxed">
-                Paste any URL or Twitter account in the box above — NagNest organizes your entire daily reading in one place.
-              </p>
-              <button
-                onClick={openAdd}
-                className="mt-2 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-md hover:bg-teal-600 transition"
-              >
-                <Plus size={16} />
-                Add your first source
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 ring-1 ring-slate-200">
-                <Search size={20} />
-              </div>
-              <h3 className="font-heading text-sm sm:text-base font-bold text-slate-900">
-                No matching sources
-              </h3>
-              <p className="max-w-sm text-xs text-slate-500">
-                {categoryFilter !== 'all'
-                  ? `No sources in "${activeCategory?.name ?? ''}" match your search.`
-                  : `No sources match "${query}".`}
-              </p>
-              <button
-                onClick={() => {
-                  setQuery('')
-                  setCategoryFilter('all')
-                  setTypeFilter('all')
-                }}
-                className="mt-1 text-xs font-semibold text-teal-600 hover:underline"
-              >
-                Clear all filters
-              </button>
-            </>
-          )}
-        </section>
+        <div className="rounded-3xl border border-slate-200/80 bg-white p-12 text-center shadow-xs">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-slate-100 text-slate-400 mb-3 shadow-xs">
+            <Globe size={26} />
+          </div>
+          <p className="text-base font-black text-slate-900">
+            {query || categoryFilter !== 'all' || typeFilter !== 'all'
+              ? 'No sources match your filters'
+              : 'Your nest is empty'}
+          </p>
+          <p className="mx-auto mt-1 max-w-sm text-xs font-semibold text-slate-400">
+            {query || categoryFilter !== 'all' || typeFilter !== 'all'
+              ? 'Try resetting the category filter or clearing your search term.'
+              : 'Add websites, blogs, or Twitter handles above to start organizing.'}
+          </p>
+        </div>
       )}
 
-      {/* Site Modal */}
+      {/* Add / Edit Site Modal */}
       <SiteModal
         open={modalOpen}
         editing={editing}
