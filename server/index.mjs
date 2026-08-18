@@ -10,10 +10,10 @@ const RAW_REDIS_URL = process.env.REDIS_URL
 const REDIS_URL = RAW_REDIS_URL || 'redis://localhost:6379'
 const MONGODB_URI = process.env.MONGODB_URI
 const AUTH_SECRET = process.env.AUTH_SECRET
-const CACHE_TTL = 30 * 60 // 30 minutes per-domain cache
-const NEGATIVE_TTL = 60 * 60 // cache failures for 1h to avoid hammering dead feeds
-const CONCURRENCY = 3
-const SITE_DELAY_MS = 300
+const CACHE_TTL = 15 * 60 // 15 minutes per-domain cache
+const NEGATIVE_TTL = 60 // cache failures for only 1m to allow quick recovery
+const CONCURRENCY = 6
+const SITE_DELAY_MS = 100
 const FETCH_TIMEOUT_MS = 7000
 const REDIS_CONNECT_TIMEOUT_MS = 1500
 
@@ -737,14 +737,14 @@ app.put('/api/data', requireAuth, async (req, res) => {
 })
 
 app.post('/api/headlines', async (req, res) => {
-  const { sites = [], perSite = 5, includeTwitter = true } = req.body ?? {}
+  const { sites = [], perSite = 6, includeTwitter = true } = req.body ?? {}
   if (!Array.isArray(sites) || sites.length === 0) {
     return res.json({ items: [] })
   }
 
   const targets = sites
     .filter((s) => (includeTwitter ? true : s?.kind !== 'twitter'))
-    .slice(0, 15)
+    .slice(0, 100)
 
   const results = []
   for (let i = 0; i < targets.length; i += CONCURRENCY) {
@@ -752,9 +752,9 @@ app.post('/api/headlines', async (req, res) => {
     const settled = await Promise.allSettled(
       chunk.map(async (site, j) => {
         await new Promise((r) => setTimeout(r, j * SITE_DELAY_MS))
-        const key = `nagnest:headlines:v2:${perSite}:${site.kind === 'twitter' ? 'tw' : 'site'}:${site.domain}:${site.kind === 'twitter' ? extractUser(site.url) : site.domain}`
+        const key = `nagnest:headlines:v3:${perSite}:${site.kind === 'twitter' ? 'tw' : 'site'}:${site.domain}:${site.kind === 'twitter' ? extractUser(site.url) : site.domain}`
         const cached = await cacheGet(key)
-        if (cached) return cached
+        if (cached && Array.isArray(cached) && cached.length > 0) return cached
         const items = await fetchForSite(site, perSite)
         await cacheSet(key, items, items.length ? CACHE_TTL : NEGATIVE_TTL)
         return items
